@@ -1,0 +1,5 @@
+name: example
+version: 1.0.0
+main: dev.vensin.kiln.example.ExamplePlugin
+description: Greets players and counts their visits
+authors: [vxnsin]
