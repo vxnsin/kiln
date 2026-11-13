@@ -4,12 +4,14 @@ import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.command.Performance;
 import dev.vensin.kiln.server.command.Chat;
 import dev.vensin.kiln.server.command.KilnCommand;
+import dev.vensin.kiln.server.command.Maintenance;
 import dev.vensin.kiln.server.console.Ansi;
 import dev.vensin.kiln.server.console.ConsoleInput;
 import dev.vensin.kiln.server.console.InteractiveConsole;
 import dev.vensin.kiln.server.console.StartReport;
 import dev.vensin.kiln.server.console.Terminal;
 import dev.vensin.kiln.server.plugin.PluginManager;
+import dev.vensin.kiln.server.store.FileStore;
 import dev.vensin.kiln.server.store.PlayerDataManager;
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,7 +68,10 @@ final class Server {
             report.done();
             System.exit(1);
         }
-        MinecraftServer server = MinecraftServer.init(settings.onlineMode() ? new Auth.Online() : new Auth.Offline());
+        boolean proxied = !settings.velocitySecret().isBlank();
+        Auth auth = proxied ? new Auth.Velocity(settings.velocitySecret())
+                : settings.onlineMode() ? new Auth.Online() : new Auth.Offline();
+        MinecraftServer server = MinecraftServer.init(auth);
         MinecraftServer.setBrandName("Kiln");
         GlobalEventHandler events = MinecraftServer.getGlobalEventHandler();
         Performance performance = new Performance();
@@ -74,14 +79,20 @@ final class Server {
 
         // The port opens right away: whoever tries during startup gets a clear answer instead of a timeout.
         AtomicBoolean ready = new AtomicBoolean();
+        Operators operators = new Operators(Path.of("ops.txt"));
+        Maintenance maintenance = new Maintenance(
+                new FileStore(Path.of("data", "kiln")).table("server", Maintenance.State.class), operators);
         events.addListener(AsyncPlayerPreLoginEvent.class, event -> {
             if (!ready.get()) {
                 event.getConnection().kick(Chat.screen("The server is still starting", "Give it a few seconds and join again."));
+            } else if (!maintenance.lets(event.getGameProfile().name())) {
+                event.getConnection().kick(maintenance.screen());
             }
         });
-        listen(events, settings, ready);
+        listen(events, settings, ready, maintenance);
         server.start(settings.host(), settings.port());
-        engine.ok((settings.onlineMode() ? "online mode" : "offline mode, accounts are not verified") + " "
+        engine.ok((proxied ? "behind Velocity" : settings.onlineMode() ? "online mode"
+                : "offline mode, accounts are not verified") + " "
                 + Ansi.DOT + " port " + settings.port());
 
         StartReport.Step world = report.begin("World", "preparing the default world");
@@ -94,7 +105,6 @@ final class Server {
 
         // The defaults above are registered first, so a plugin listening to the same event has the last word.
         StartReport.Step loading = report.beginQuietly("Plugins");
-        Operators operators = new Operators(Path.of("ops.txt"));
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
         PluginManager plugins = new PluginManager(Path.of("data"), operators, playerData);
@@ -102,7 +112,7 @@ final class Server {
         listPlugins(report, loading, plugins);
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
-        KilnCommand.register(MinecraftServer.getCommandManager(), operators, plugins, performance, version);
+        KilnCommand.register(MinecraftServer.getCommandManager(), operators, plugins, performance, maintenance, version);
         MinecraftServer.getSchedulerManager().buildShutdownTask(() -> {
             plugins.disableAll();
             playerData.saveAll();
@@ -173,7 +183,8 @@ final class Server {
         });
     }
 
-    private static void listen(GlobalEventHandler events, Settings settings, AtomicBoolean ready) {
+    private static void listen(GlobalEventHandler events, Settings settings, AtomicBoolean ready,
+                               Maintenance maintenance) {
         events.addListener(PlayerSpawnEvent.class, event -> {
             if (event.isFirstSpawn()) {
                 LOG.info("{} {} joined {}", Ansi.green(Ansi.JOIN), event.getPlayer().getUsername(), online(0));
@@ -182,7 +193,8 @@ final class Server {
         events.addListener(PlayerDisconnectEvent.class, event ->
                 LOG.info("{} {} left {}", Ansi.dim(Ansi.LEAVE), event.getPlayer().getUsername(), online(-1)));
         events.addListener(ServerListPingEvent.class, event -> event.setStatus(Status.builder(event.getStatus())
-                .description(MiniMessage.miniMessage().deserialize(ready.get() ? settings.motd() : STARTING_MOTD))
+                .description(MiniMessage.miniMessage().deserialize(!ready.get() ? STARTING_MOTD
+                        : maintenance.enabled() ? settings.maintenanceMotd() : settings.motd()))
                 .playerInfo(MinecraftServer.getConnectionManager().getOnlinePlayers().size(), settings.maxPlayers())
                 .build()));
     }

@@ -27,6 +27,10 @@ public final class Operators {
         }
     }
 
+    public boolean isOperator(String username) {
+        return names.contains(username.toLowerCase(Locale.ROOT));
+    }
+
     public boolean allows(CommandSender sender) {
         return sender instanceof ConsoleSender
                 || sender instanceof Player player && names.contains(player.getUsername().toLowerCase(Locale.ROOT));

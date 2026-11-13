@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.command.CommandSender;
@@ -30,6 +31,7 @@ public final class KilnCommand {
         HELP.put("performance", "ticks, memory, CPU and what the world holds (short: perf)");
         HELP.put("version", "the running version");
         HELP.put("update", "look for a newer release and fetch it");
+        HELP.put("maintenance", "let only operators and allowed players in");
         HELP.put("op [name]", "give a player admin rights");
         HELP.put("deop [name]", "take them away again");
         HELP.put("stop", "save and shut down");
@@ -37,17 +39,19 @@ public final class KilnCommand {
 
     private final Operators operators;
     private final PluginManager plugins;
+    private final Maintenance maintenance;
     private final String version;
 
-    private KilnCommand(Operators operators, PluginManager plugins, String version) {
+    private KilnCommand(Operators operators, PluginManager plugins, Maintenance maintenance, String version) {
         this.operators = operators;
         this.plugins = plugins;
+        this.maintenance = maintenance;
         this.version = version;
     }
 
     public static void register(CommandManager commands, Operators operators, PluginManager plugins,
-                                Performance performance, String version) {
-        KilnCommand kiln = new KilnCommand(operators, plugins, version);
+                                Performance performance, Maintenance maintenance, String version) {
+        KilnCommand kiln = new KilnCommand(operators, plugins, maintenance, version);
         Command root = new Command(NAME);
         root.setDefaultExecutor((sender, context) -> {
             if (operators.allows(sender)) {
@@ -63,8 +67,9 @@ public final class KilnCommand {
                 kiln.admin("performance", (sender, context) -> performance.report(sender), "perf"),
                 kiln.admin("version", (sender, context) -> kiln.version(sender)),
                 kiln.admin("update", (sender, context) -> Thread.ofVirtual().start(() -> kiln.update(sender))),
-                kiln.named("op", true),
-                kiln.named("deop", false),
+                kiln.withName("op", "op", (sender, name) -> kiln.change(sender, name, true)),
+                kiln.withName("deop", "deop", (sender, name) -> kiln.change(sender, name, false)),
+                kiln.maintenanceCommand(),
                 kiln.admin("stop", (sender, context) -> kiln.stop(sender)));
 
         // Typing just "stop" into a console is a habit worth keeping.
@@ -143,13 +148,6 @@ public final class KilnCommand {
         return command;
     }
 
-    private Command named(String name, boolean grant) {
-        ArgumentWord player = ArgumentType.Word("name");
-        Command command = admin(name, (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln " + name + " [name]</gray>"));
-        command.addSyntax((sender, context) -> change(sender, context.get(player), grant), player);
-        return command;
-    }
-
     private void change(CommandSender sender, String name, boolean grant) {
         try {
             boolean changed = grant ? operators.add(name) : operators.remove(name);
@@ -165,5 +163,40 @@ public final class KilnCommand {
         } catch (IOException e) {
             Chat.error(sender, "Could not save ops.txt: " + e.getMessage());
         }
+    }
+
+    private Command maintenanceCommand() {
+        Command command = admin("maintenance", (sender, context) -> maintenanceStatus(sender));
+        command.addSubcommands(
+                admin("on", (sender, context) -> {
+                    maintenance.set(true);
+                    Chat.say(sender, "<yellow>Maintenance is on.</yellow> <gray>Only operators and allowed players get in.</gray>");
+                }),
+                admin("off", (sender, context) -> {
+                    maintenance.set(false);
+                    Chat.say(sender, "<green>Maintenance is off.</green> <gray>Everyone can join again.</gray>");
+                }),
+                withName("allow", "maintenance allow", (sender, name) -> Chat.say(sender, maintenance.allow(name)
+                        ? "<green>" + name + " may join during maintenance.</green>"
+                        : "<gray>" + name + " is already allowed.</gray>")),
+                withName("deny", "maintenance deny", (sender, name) -> Chat.say(sender, maintenance.deny(name)
+                        ? "<green>" + name + " is no longer allowed during maintenance.</green>"
+                        : "<gray>" + name + " was not on the list.</gray>")));
+        return command;
+    }
+
+    private void maintenanceStatus(CommandSender sender) {
+        Chat.say(sender, maintenance.enabled() ? "<yellow>Maintenance is on</yellow>" : "<white>Maintenance is off</white>");
+        Chat.item(sender, "<gold>/kiln maintenance on</gold> <gray>or</gray> <gold>off</gold>");
+        Chat.item(sender, "<gold>/kiln maintenance allow [name]</gold> <gray>or</gray> <gold>deny [name]</gold>");
+        Chat.item(sender, "<gray>Allowed besides operators:</gray> <white>"
+                + (maintenance.allowed().isEmpty() ? "nobody" : String.join(", ", maintenance.allowed())) + "</white>");
+    }
+
+    private Command withName(String name, String usage, BiConsumer<CommandSender, String> action) {
+        ArgumentWord player = ArgumentType.Word("name");
+        Command command = admin(name, (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln " + usage + " [name]</gray>"));
+        command.addSyntax((sender, context) -> action.accept(sender, context.get(player)), player);
+        return command;
     }
 }

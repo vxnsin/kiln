@@ -7,8 +7,15 @@ port: 25565
 # true: only paid Minecraft accounts can join and skins work. Use false only on a closed LAN or behind a proxy.
 online-mode: true
 
+# Behind a Velocity proxy: put the forwarding secret of the proxy here (Velocity's "modern" forwarding).
+# Players then have to come through the proxy and online-mode above is ignored. Empty: no proxy.
+velocity-secret: ""
+
 # Text in the server list (MiniMessage).
 motd: "<gradient:#ff8700:#ffd700><bold>A Kiln server</bold></gradient><newline><gray>fresh out of the oven</gray>"
+
+# Text in the server list while maintenance is on (/kiln maintenance on).
+maintenance-motd: "<gradient:#ff8700:#ffd700><bold>Under maintenance</bold></gradient><newline><gray>back soon</gray>"
 
 # Number shown as the player limit in the server list.
 max-players: 100
