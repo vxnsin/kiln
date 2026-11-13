@@ -12,20 +12,9 @@
 class, a console, commands, a config file, a plugin loader and somewhere to keep player data. Kiln is that
 part, written once, so a new project starts at the interesting bit.
 
-```
-   ▄████▄
-  ████████    Kiln 0.1.0
-  ████████    a Minestom server that is ready to run
-  ████████    Minecraft 26.2 · Java 25
- ██████████   made by vxnsin · github.com/vxnsin/kiln
-
-  √ Engine   online mode
-  √ World    flat
-  √ Plugins  2 loaded
-    ├─ lobby    1.2.0
-    └─ parkour  0.4.1
-  √ Ready    port 25565 · 2.8 s · type kiln for help
-```
+<p align="center">
+  <img src="docs/console.svg" alt="Kiln starting in a terminal: pixel icon, version, startup steps and the plugin list" width="760">
+</p>
 
 On the machine it was written on, an empty Kiln starts in under three seconds and sits at about 80 MB of
 memory.
