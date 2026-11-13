@@ -1,5 +1,6 @@
 package dev.vensin.kiln.server.command;
 
+import dev.vensin.kiln.server.console.InteractiveConsole;
 import dev.vensin.kiln.server.plugin.PluginManager;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +17,7 @@ import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandExecutor;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.arguments.ArgumentWord;
+import net.minestom.server.command.builder.suggestion.SuggestionEntry;
 import net.minestom.server.entity.Player;
 
 /** Everything the server itself offers lives under /kiln, so plugins keep the rest of the namespace. */
@@ -27,6 +29,9 @@ public final class KilnCommand {
 
     static {
         HELP.put("plugins", "loaded plugins and their versions");
+        HELP.put("reload [plugin]", "swap a plugin for the jar now in the folder");
+        HELP.put("load", "load jars that were added to the folder");
+        HELP.put("unload [plugin]", "take a plugin out");
         HELP.put("players", "who is online");
         HELP.put("performance", "ticks, memory, CPU and what the world holds (short: perf)");
         HELP.put("version", "the running version");
@@ -64,6 +69,10 @@ public final class KilnCommand {
                 kiln.admin("help", (sender, context) -> kiln.help(sender)),
                 kiln.admin("plugins", (sender, context) -> kiln.plugins(sender)),
                 kiln.admin("players", (sender, context) -> kiln.players(sender)),
+                kiln.withPlugin("reload", kiln::reload),
+                kiln.admin("load", (sender, context) -> MinecraftServer.getSchedulerManager()
+                        .scheduleNextTick(() -> kiln.load(sender))),
+                kiln.withPlugin("unload", (sender, name) -> kiln.unload(sender, name, true)),
                 kiln.admin("performance", (sender, context) -> performance.report(sender), "perf"),
                 kiln.admin("version", (sender, context) -> kiln.version(sender)),
                 kiln.admin("update", (sender, context) -> Thread.ofVirtual().start(() -> kiln.update(sender))),
@@ -89,10 +98,10 @@ public final class KilnCommand {
     private void plugins(CommandSender sender) {
         List<PluginManager.Loaded> loaded = plugins.loaded();
         if (loaded.isEmpty()) {
-            Chat.say(sender, "<gray>No plugins loaded. Drop jars into the plugins folder and restart.</gray>");
+            Chat.say(sender, "<gray>No plugins loaded. Drop jars into the plugins folder and type kiln load.</gray>");
             return;
         }
-        Chat.say(sender, "<white>" + loaded.size() + " plugins</white>");
+        Chat.say(sender, "<white>" + loaded.size() + (loaded.size() == 1 ? " plugin" : " plugins") + "</white>");
         loaded.forEach(plugin -> Chat.item(sender, "<white>" + plugin.info().name() + "</white> <gray>"
                 + plugin.info().version() + "</gray>"));
     }
@@ -198,5 +207,80 @@ public final class KilnCommand {
         Command command = admin(name, (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln " + usage + " [name]</gray>"));
         command.addSyntax((sender, context) -> action.accept(sender, context.get(player)), player);
         return command;
+    }
+
+    private Command withPlugin(String name, BiConsumer<CommandSender, String> action) {
+        ArgumentWord plugin = ArgumentType.Word("plugin");
+        plugin.setSuggestionCallback((sender, context, suggestion) -> pluginNames()
+                .forEach(loaded -> suggestion.addEntry(new SuggestionEntry(loaded))));
+        InteractiveConsole.suggest(name, this::pluginNames);
+        Command command = admin(name, (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln " + name + " [plugin]</gray>"));
+        // Swapping happens between two ticks, so no event is halfway through a plugin that is going away.
+        command.addSyntax((sender, context) -> MinecraftServer.getSchedulerManager()
+                .scheduleNextTick(() -> action.accept(sender, context.get(plugin))), plugin);
+        return command;
+    }
+
+    private List<String> pluginNames() {
+        return plugins.loaded().stream().map(loaded -> loaded.info().name()).toList();
+    }
+
+    private void reload(CommandSender sender, String name) {
+        String before = plugins.loaded().stream().filter(loaded -> loaded.info().name().equals(name))
+                .map(loaded -> loaded.info().version()).findFirst().orElse(null);
+        if (before == null) {
+            Chat.error(sender, name + " is not loaded.");
+            return;
+        }
+        if (!unload(sender, name, false)) {
+            return;
+        }
+        List<PluginManager.Loaded> added = loadNew(sender);
+        added.stream().filter(loaded -> loaded.info().name().equals(name)).findFirst().ifPresent(loaded ->
+                Chat.say(sender, "<green>" + name + " swapped.</green> <gray>" + before + " → " + loaded.info().version() + "</gray>"));
+    }
+
+    private boolean unload(CommandSender sender, String name, boolean announce) {
+        try {
+            if (!plugins.unload(name)) {
+                Chat.error(sender, name + " is not loaded.");
+                return false;
+            }
+        } catch (IllegalStateException blocked) {
+            Chat.error(sender, name + " cannot go: " + blocked.getMessage() + ".");
+            return false;
+        }
+        if (announce) {
+            Chat.say(sender, "<green>" + name + " unloaded.</green>");
+            refreshCommands();
+        }
+        return true;
+    }
+
+    private List<PluginManager.Loaded> loadNew(CommandSender sender) {
+        List<PluginManager.Loaded> added;
+        try {
+            added = plugins.loadNew();
+        } catch (IOException e) {
+            Chat.error(sender, "Could not read the plugins folder: " + e.getMessage());
+            return List.of();
+        }
+        plugins.failures().forEach(failure -> Chat.error(sender, failure.name() + " " + failure.version() + ": "
+                + failure.reason()));
+        refreshCommands();
+        return added;
+    }
+
+    private void load(CommandSender sender) {
+        List<PluginManager.Loaded> added = loadNew(sender);
+        if (added.isEmpty() && plugins.failures().isEmpty()) {
+            Chat.say(sender, "<gray>Nothing new in the plugins folder.</gray>");
+        }
+        added.forEach(loaded -> Chat.say(sender, "<green>" + loaded.info().name() + " loaded.</green> <gray>"
+                + loaded.info().version() + "</gray>"));
+    }
+
+    private static void refreshCommands() {
+        MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(Player::refreshCommands);
     }
 }

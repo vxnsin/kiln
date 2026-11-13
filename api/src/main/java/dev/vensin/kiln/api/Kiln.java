@@ -6,14 +6,26 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Supplier;
 import net.minestom.server.command.CommandSender;
+import net.minestom.server.command.builder.Command;
+import net.minestom.server.event.Event;
+import net.minestom.server.event.EventNode;
 import org.slf4j.Logger;
 
-/** What the server hands to a plugin. Everything else (events, commands, instances) is plain Minestom. */
+/** What the server hands to a plugin. Instances, entities and the rest are plain Minestom. */
 public interface Kiln {
 
     PluginInfo info();
 
     Logger logger();
+
+    /**
+     * Where this plugin listens to events. Use this instead of the global event handler:
+     * everything registered here disappears when the plugin is unloaded or swapped.
+     */
+    EventNode<Event> events();
+
+    /** Registers commands that are removed again when the plugin is unloaded or swapped. */
+    void commands(Command... commands);
 
     /** plugins/&lt;name&gt;/, created on first use. */
     Path dataFolder();

@@ -107,8 +107,8 @@ final class Server {
         StartReport.Step loading = report.beginQuietly("Plugins");
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
-        PluginManager plugins = new PluginManager(Path.of("data"), operators, playerData);
-        plugins.loadAll(Path.of("plugins"));
+        PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), operators, playerData);
+        plugins.loadNew();
         listPlugins(report, loading, plugins);
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
@@ -132,7 +132,7 @@ final class Server {
     private static void listPlugins(StartReport report, StartReport.Step step, PluginManager plugins) {
         List<PluginManager.Loaded> loaded = plugins.loaded();
         List<PluginManager.Failure> failures = plugins.failures();
-        String summary = loaded.isEmpty() && failures.isEmpty() ? "none, drop jars into the plugins folder"
+        String summary = loaded.isEmpty() && failures.isEmpty() ? "none, drop jars into the plugins folder and type kiln load"
                 : loaded.size() + " loaded";
         if (failures.isEmpty()) {
             step.ok(summary);

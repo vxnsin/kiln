@@ -33,6 +33,13 @@ public final class PlayerDataManager {
         return data;
     }
 
+    /** Saves what is loaded and stops tracking it, for a plugin that is being unloaded. */
+    public void remove(PlayerData<?> data) {
+        if (data instanceof Loaded<?> loaded && all.remove(loaded)) {
+            loaded.saveAll();
+        }
+    }
+
     public void saveAll() {
         all.forEach(Loaded::saveAll);
     }

@@ -11,12 +11,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
+import net.minestom.server.command.builder.Command;
+import net.minestom.server.event.Event;
+import net.minestom.server.event.EventNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.LoaderOptions;
@@ -34,6 +41,9 @@ final class PluginContext implements Kiln {
     private final Operators operators;
     private final PlayerDataManager playerData;
     private final Logger logger;
+    private final EventNode<Event> events;
+    private final List<Command> commands = new ArrayList<>();
+    private final List<PlayerData<?>> data = new ArrayList<>();
 
     PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, Path data, Operators operators,
                   PlayerDataManager playerData) {
@@ -44,6 +54,8 @@ final class PluginContext implements Kiln {
         this.operators = operators;
         this.playerData = playerData;
         this.logger = LoggerFactory.getLogger(info.name());
+        this.events = EventNode.all("plugin-" + info.name());
+        MinecraftServer.getGlobalEventHandler().addChild(events);
     }
 
     @Override
@@ -56,6 +68,26 @@ final class PluginContext implements Kiln {
         return logger;
     }
 
+
+    @Override
+    public EventNode<Event> events() {
+        return events;
+    }
+
+    @Override
+    public void commands(Command... added) {
+        MinecraftServer.getCommandManager().register(added);
+        commands.addAll(List.of(added));
+    }
+
+    /** Takes back everything the plugin registered through this context. */
+    void close() {
+        MinecraftServer.getGlobalEventHandler().removeChild(events);
+        commands.forEach(MinecraftServer.getCommandManager()::unregister);
+        commands.clear();
+        data.forEach(playerData::remove);
+        data.clear();
+    }
     @Override
     public Path dataFolder() {
         try {
@@ -73,7 +105,10 @@ final class PluginContext implements Kiln {
             // findResource looks in the plugin jar only, never in the server or in other plugins.
             URL defaults = loader.findResource(CONFIG);
             if (!Files.exists(file) && defaults != null) {
-                try (InputStream in = defaults.openStream()) {
+                // Without this the JVM caches the open jar and the file can never be replaced or deleted.
+                URLConnection connection = defaults.openConnection();
+                connection.setUseCaches(false);
+                try (InputStream in = connection.getInputStream()) {
                     Files.copy(in, file);
                 }
             }
@@ -95,7 +130,9 @@ final class PluginContext implements Kiln {
 
     @Override
     public <T> PlayerData<T> playerData(String name, Class<T> type, Supplier<T> fresh) {
-        return playerData.create(store.table(name, type), fresh);
+        PlayerData<T> created = playerData.create(store.table(name, type), fresh);
+        data.add(created);
+        return created;
     }
 
     @Override

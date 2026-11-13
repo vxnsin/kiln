@@ -5,9 +5,10 @@ import dev.vensin.kiln.api.PluginInfo;
 import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.store.PlayerDataManager;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.lang.reflect.InvocationTargetException;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -17,19 +18,24 @@ import java.util.stream.Stream;
 
 public final class PluginManager {
 
-    public record Loaded(PluginInfo info, Plugin plugin, PluginClassLoader loader) {}
+    public record Loaded(PluginInfo info, Plugin plugin, PluginClassLoader loader, PluginContext context, Path copy) {}
 
     /** A plugin that did not make it, with a reason short enough for one console line. */
     public record Failure(String name, String version, String reason, Throwable cause) {}
 
-    private final Map<String, Loaded> loaded = new LinkedHashMap<>();
-    private final List<Failure> failures = new ArrayList<>();
+    private static final String COPIES = ".loaded";
 
+    private final Path directory;
     private final Path dataRoot;
     private final Operators operators;
     private final PlayerDataManager playerData;
+    private final Map<String, Loaded> loaded = new LinkedHashMap<>();
+    private final List<Failure> failures = new ArrayList<>();
+    private int copies;
+    private boolean started;
 
-    public PluginManager(Path dataRoot, Operators operators, PlayerDataManager playerData) {
+    public PluginManager(Path directory, Path dataRoot, Operators operators, PlayerDataManager playerData) {
+        this.directory = directory;
         this.dataRoot = dataRoot;
         this.operators = operators;
         this.playerData = playerData;
@@ -39,18 +45,28 @@ public final class PluginManager {
         return List.copyOf(loaded.values());
     }
 
+    /** Failures since the last call of {@link #loadNew()}. */
     public List<Failure> failures() {
         return List.copyOf(failures);
     }
 
-    public void loadAll(Path directory) throws IOException {
+    /** Loads every jar in the plugins folder that is not loaded yet, in dependency order. */
+    public synchronized List<Loaded> loadNew() throws IOException {
+        failures.clear();
         Files.createDirectories(directory);
+        if (!started) {
+            started = true;
+            clearCopies();
+        }
         Map<String, Path> jars = new LinkedHashMap<>();
         Map<String, PluginInfo> waiting = new LinkedHashMap<>();
         try (Stream<Path> files = Files.list(directory)) {
             for (Path jar : files.filter(file -> file.toString().endsWith(".jar")).sorted().toList()) {
                 try {
                     PluginInfo info = PluginDescriptor.read(jar);
+                    if (loaded.containsKey(info.name())) {
+                        continue;
+                    }
                     if (waiting.containsKey(info.name())) {
                         fail(jar.getFileName().toString(), info.version(), "a plugin named " + info.name()
                                 + " is already there", null);
@@ -64,7 +80,8 @@ public final class PluginManager {
             }
         }
 
-        // Enable in dependency order: each round takes every plugin whose dependencies are already up.
+        // Each round takes every plugin whose dependencies are already up.
+        List<Loaded> added = new ArrayList<>();
         boolean progress = true;
         while (!waiting.isEmpty() && progress) {
             progress = false;
@@ -77,48 +94,123 @@ public final class PluginManager {
                     progress = true;
                 } else if (loaded.keySet().containsAll(info.depends())) {
                     waiting.remove(info.name());
-                    enable(info, jars.get(info.name()), directory);
+                    Loaded plugin = enable(info, jars.get(info.name()));
+                    if (plugin != null) {
+                        added.add(plugin);
+                    }
                     progress = true;
                 }
             }
         }
         waiting.values().forEach(info -> fail(info.name(), info.version(), "dependency cycle with "
                 + String.join(", ", info.depends()), null));
+        return added;
     }
 
-    public void disableAll() {
+    /** Names of loaded plugins that need the given one and therefore block unloading it. */
+    public synchronized List<String> dependents(String name) {
+        return loaded.values().stream().filter(plugin -> plugin.info().depends().contains(name))
+                .map(plugin -> plugin.info().name()).toList();
+    }
+
+    /** Returns false when no such plugin is loaded. Throws when other plugins still depend on it. */
+    public synchronized boolean unload(String name) {
+        Loaded plugin = loaded.get(name);
+        if (plugin == null) {
+            return false;
+        }
+        List<String> dependents = dependents(name);
+        if (!dependents.isEmpty()) {
+            throw new IllegalStateException(String.join(", ", dependents) + " still need it");
+        }
+        loaded.remove(name);
+        release(plugin);
+        return true;
+    }
+
+    public synchronized void disableAll() {
         List<Loaded> reversed = new ArrayList<>(loaded.values());
         Collections.reverse(reversed);
-        for (Loaded plugin : reversed) {
-            try {
-                plugin.plugin().disable();
-            } catch (RuntimeException e) {
-                failures.add(new Failure(plugin.info().name(), plugin.info().version(), "error while disabling", e));
-            }
-        }
+        loaded.clear();
+        reversed.forEach(this::release);
     }
 
-    private void enable(PluginInfo info, Path jar, Path directory) {
+    private Loaded enable(PluginInfo info, Path jar) {
+        Path copy = null;
+        PluginClassLoader loader = null;
+        PluginContext context = null;
         try {
+            // The jar is loaded from a copy, so the original can be replaced while the server runs.
+            copy = Files.createDirectories(directory.resolve(COPIES)).resolve(info.name() + "-" + copies++ + ".jar");
+            Files.copy(jar, copy, StandardCopyOption.REPLACE_EXISTING);
             List<PluginClassLoader> dependencies = info.depends().stream().map(name -> loaded.get(name).loader()).toList();
-            PluginClassLoader loader = new PluginClassLoader(jar.toUri().toURL(), PluginManager.class.getClassLoader(),
-                    dependencies);
+            loader = new PluginClassLoader(copy.toUri().toURL(), PluginManager.class.getClassLoader(), dependencies);
             Class<?> main = Class.forName(info.main(), true, loader);
             if (!Plugin.class.isAssignableFrom(main)) {
-                fail(info.name(), info.version(), info.main() + " does not implement Plugin", null);
-                return;
+                throw new IllegalArgumentException(info.main() + " does not implement Plugin");
             }
             Plugin plugin = (Plugin) main.getDeclaredConstructor().newInstance();
-            plugin.enable(new PluginContext(info, loader, directory.resolve(info.name()), dataRoot.resolve(info.name()),
-                    operators, playerData));
-            loaded.put(info.name(), new Loaded(info, plugin, loader));
+            context = new PluginContext(info, loader, directory.resolve(info.name()), dataRoot.resolve(info.name()),
+                    operators, playerData);
+            plugin.enable(context);
+            Loaded result = new Loaded(info, plugin, loader, context, copy);
+            loaded.put(info.name(), result);
+            return result;
         } catch (ClassNotFoundException e) {
             fail(info.name(), info.version(), "main class " + info.main() + " not found", null);
         } catch (NoSuchMethodException e) {
             fail(info.name(), info.version(), info.main() + " needs a public constructor without arguments", null);
+        } catch (IllegalArgumentException e) {
+            fail(info.name(), info.version(), e.getMessage(), null);
         } catch (ReflectiveOperationException | IOException | RuntimeException | LinkageError e) {
             Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
             fail(info.name(), info.version(), "error while enabling: " + cause, cause);
+        }
+        // A plugin that failed halfway must not leave listeners or an open jar behind.
+        if (context != null) {
+            context.close();
+        }
+        closeQuietly(loader, copy);
+        return null;
+    }
+
+    private void release(Loaded plugin) {
+        try {
+            plugin.plugin().disable();
+        } catch (RuntimeException | LinkageError e) {
+            fail(plugin.info().name(), plugin.info().version(), "error while disabling: " + e, e);
+        }
+        plugin.context().close();
+        closeQuietly(plugin.loader(), plugin.copy());
+    }
+
+    private static void closeQuietly(PluginClassLoader loader, Path copy) {
+        try {
+            if (loader != null) {
+                loader.close();
+            }
+            if (copy != null) {
+                Files.deleteIfExists(copy);
+            }
+        } catch (IOException leftover) {
+            // the copy is removed on the next start
+        }
+    }
+
+    /** Copies left behind by a crash; one that cannot be deleted is simply left alone. */
+    private void clearCopies() throws IOException {
+        Path folder = directory.resolve(COPIES);
+        if (!Files.isDirectory(folder)) {
+            return;
+        }
+        try (Stream<Path> files = Files.list(folder)) {
+            for (Path file : files.toList()) {
+                try {
+                    Files.deleteIfExists(file);
+                } catch (IOException inUse) {
+                    // still locked by something else
+                }
+            }
         }
     }
 

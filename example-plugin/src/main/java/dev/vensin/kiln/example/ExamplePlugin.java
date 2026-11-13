@@ -5,7 +5,6 @@ import dev.vensin.kiln.api.Plugin;
 import dev.vensin.kiln.api.store.PlayerData;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerSpawnEvent;
@@ -22,7 +21,7 @@ public final class ExamplePlugin implements Plugin {
         String greeting = String.valueOf(kiln.config().getOrDefault("greeting", "<gold>Welcome, <name>!</gold>"));
         PlayerData<Visits> visits = kiln.playerData("visits", Visits.class, Visits::new);
 
-        MinecraftServer.getGlobalEventHandler().addListener(PlayerSpawnEvent.class, event -> {
+        kiln.events().addListener(PlayerSpawnEvent.class, event -> {
             if (!event.isFirstSpawn()) {
                 return;
             }
@@ -40,7 +39,7 @@ public final class ExamplePlugin implements Plugin {
                 player.sendMessage("Visits: " + visits.of(player).count);
             }
         });
-        MinecraftServer.getCommandManager().register(command);
+        kiln.commands(command);
 
         kiln.logger().info("Greeting players with: {}", greeting);
     }

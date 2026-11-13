@@ -3,6 +3,9 @@ package dev.vensin.kiln.server.console;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
@@ -17,6 +20,7 @@ import org.jline.terminal.TerminalBuilder;
 /** The prompt for a person at the keyboard: history, editing and tab completion of commands. */
 public final class InteractiveConsole {
 
+    private static final Map<String, Supplier<List<String>>> SUGGESTIONS = new ConcurrentHashMap<>();
     private static volatile LineReader reader;
 
     private InteractiveConsole() {}
@@ -29,6 +33,11 @@ public final class InteractiveConsole {
         }
         active.printAbove(text.stripTrailing());
         return true;
+    }
+
+    /** What to offer after the given command word instead of player names. */
+    public static void suggest(String command, Supplier<List<String>> options) {
+        SUGGESTIONS.put(command, options);
     }
 
     public static void start() throws IOException {
@@ -70,7 +79,9 @@ public final class InteractiveConsole {
             }
             if (command != null) {
                 command.getSubcommands().forEach(sub -> options.add(sub.getName()));
-                if (command.getSubcommands().isEmpty() && !command.getSyntaxes().isEmpty()) {
+                if (SUGGESTIONS.containsKey(command.getName())) {
+                    options.addAll(SUGGESTIONS.get(command.getName()).get());
+                } else if (command.getSubcommands().isEmpty() && !command.getSyntaxes().isEmpty()) {
                     MinecraftServer.getConnectionManager().getOnlinePlayers().stream().map(Player::getUsername)
                             .forEach(options::add);
                 }
