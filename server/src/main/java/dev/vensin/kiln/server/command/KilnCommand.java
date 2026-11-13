@@ -136,6 +136,8 @@ public final class KilnCommand {
 
     private void stop(CommandSender sender) {
         Chat.say(sender, "<gray>Shutting down</gray>");
+        MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(player -> player.kick(
+                Chat.screen("The server is shutting down", "It will be back shortly.")));
         MinecraftServer.stopCleanly();
         System.exit(0);
     }

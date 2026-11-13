@@ -32,6 +32,12 @@ public final class Chat {
         say(sender, "<red>" + miniMessage + "</red>");
     }
 
+    /** The text of a disconnect screen: who is talking, what happened, what to do about it. */
+    public static Component screen(String headline, String advice) {
+        return MINI_MESSAGE.deserialize("<gradient:#ff8700:#ffd700><bold>Kiln</bold></gradient><newline><newline><white>"
+                + headline + "</white><newline><gray>" + advice + "</gray>");
+    }
+
     private static void send(CommandSender sender, String lead, String miniMessage) {
         if (sender instanceof Player player) {
             player.sendMessage(MINI_MESSAGE.deserialize(lead + miniMessage));

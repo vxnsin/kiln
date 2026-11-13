@@ -1,6 +1,7 @@
 package dev.vensin.kiln.server;
 
 import dev.vensin.kiln.server.command.Operators;
+import dev.vensin.kiln.server.command.Chat;
 import dev.vensin.kiln.server.command.KilnCommand;
 import dev.vensin.kiln.server.console.Ansi;
 import dev.vensin.kiln.server.console.ConsoleInput;
@@ -15,12 +16,14 @@ import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
+import net.minestom.server.event.player.AsyncPlayerPreLoginEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.event.server.ServerListPingEvent;
@@ -35,6 +38,8 @@ final class Server {
 
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     private static final int GROUND = 40;
+    private static final String STARTING_MOTD =
+            "<gradient:#ff8700:#ffd700><bold>Starting up</bold></gradient><newline><gray>ready in a few seconds</gray>";
 
     private Server() {}
 
@@ -55,10 +60,26 @@ final class Server {
     private static void start(StartReport report, String version) throws IOException {
         StartReport.Step engine = report.begin("Engine", "starting Minestom");
         Settings settings = Settings.load(Path.of("kiln.yml"));
+        if (!portFree(settings.port())) {
+            engine.fail("port " + settings.port() + " is already in use, is another server still running?");
+            report.done();
+            System.exit(1);
+        }
         MinecraftServer server = MinecraftServer.init(settings.onlineMode() ? new Auth.Online() : new Auth.Offline());
         MinecraftServer.setBrandName("Kiln");
         GlobalEventHandler events = MinecraftServer.getGlobalEventHandler();
-        engine.ok(settings.onlineMode() ? "online mode" : "offline mode, accounts are not verified");
+
+        // The port opens right away: whoever tries during startup gets a clear answer instead of a timeout.
+        AtomicBoolean ready = new AtomicBoolean();
+        events.addListener(AsyncPlayerPreLoginEvent.class, event -> {
+            if (!ready.get()) {
+                event.getConnection().kick(Chat.screen("The server is still starting", "Give it a few seconds and join again."));
+            }
+        });
+        listen(events, settings, ready);
+        server.start(settings.host(), settings.port());
+        engine.ok((settings.onlineMode() ? "online mode" : "offline mode, accounts are not verified") + " "
+                + Ansi.DOT + " port " + settings.port());
 
         StartReport.Step world = report.begin("World", "preparing the default world");
         if (settings.world().equals("flat")) {
@@ -77,21 +98,14 @@ final class Server {
         plugins.loadAll(Path.of("plugins"));
         listPlugins(report, loading, plugins);
 
-        StartReport.Step opening = report.begin("Ready", "opening port " + settings.port());
-        if (!portFree(settings.port())) {
-            opening.fail("port " + settings.port() + " is already in use, is another server still running?");
-            report.done();
-            System.exit(1);
-        }
-        listen(events, settings);
+        StartReport.Step opening = report.begin("Ready", "letting players in");
         KilnCommand.register(MinecraftServer.getCommandManager(), operators, plugins, version);
         MinecraftServer.getSchedulerManager().buildShutdownTask(() -> {
             plugins.disableAll();
             playerData.saveAll();
         });
-        server.start(settings.host(), settings.port());
-        opening.ok("port " + settings.port() + " " + Ansi.DOT + " " + report.elapsed() + " " + Ansi.DOT
-                + " type kiln for help");
+        ready.set(true);
+        opening.ok(report.elapsed() + " " + Ansi.DOT + " type kiln for help");
         report.done();
         plugins.failures().stream().filter(failure -> failure.cause() != null)
                 .forEach(failure -> LOG.error("Plugin {} failed", failure.name(), failure.cause()));
@@ -156,7 +170,7 @@ final class Server {
         });
     }
 
-    private static void listen(GlobalEventHandler events, Settings settings) {
+    private static void listen(GlobalEventHandler events, Settings settings, AtomicBoolean ready) {
         events.addListener(PlayerSpawnEvent.class, event -> {
             if (event.isFirstSpawn()) {
                 LOG.info("{} {} joined {}", Ansi.green(Ansi.JOIN), event.getPlayer().getUsername(), online(0));
@@ -165,7 +179,7 @@ final class Server {
         events.addListener(PlayerDisconnectEvent.class, event ->
                 LOG.info("{} {} left {}", Ansi.dim(Ansi.LEAVE), event.getPlayer().getUsername(), online(-1)));
         events.addListener(ServerListPingEvent.class, event -> event.setStatus(Status.builder(event.getStatus())
-                .description(MiniMessage.miniMessage().deserialize(settings.motd()))
+                .description(MiniMessage.miniMessage().deserialize(ready.get() ? settings.motd() : STARTING_MOTD))
                 .playerInfo(MinecraftServer.getConnectionManager().getOnlinePlayers().size(), settings.maxPlayers())
                 .build()));
     }
