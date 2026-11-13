@@ -27,7 +27,7 @@ public final class KilnCommand {
     static {
         HELP.put("plugins", "loaded plugins and their versions");
         HELP.put("players", "who is online");
-        HELP.put("mem", "memory in use");
+        HELP.put("performance", "ticks, memory, CPU and what the world holds (short: perf)");
         HELP.put("version", "the running version");
         HELP.put("update", "look for a newer release and fetch it");
         HELP.put("op [name]", "give a player admin rights");
@@ -45,7 +45,8 @@ public final class KilnCommand {
         this.version = version;
     }
 
-    public static void register(CommandManager commands, Operators operators, PluginManager plugins, String version) {
+    public static void register(CommandManager commands, Operators operators, PluginManager plugins,
+                                Performance performance, String version) {
         KilnCommand kiln = new KilnCommand(operators, plugins, version);
         Command root = new Command(NAME);
         root.setDefaultExecutor((sender, context) -> {
@@ -59,7 +60,7 @@ public final class KilnCommand {
                 kiln.admin("help", (sender, context) -> kiln.help(sender)),
                 kiln.admin("plugins", (sender, context) -> kiln.plugins(sender)),
                 kiln.admin("players", (sender, context) -> kiln.players(sender)),
-                kiln.admin("mem", (sender, context) -> kiln.memory(sender)),
+                kiln.admin("performance", (sender, context) -> performance.report(sender), "perf"),
                 kiln.admin("version", (sender, context) -> kiln.version(sender)),
                 kiln.admin("update", (sender, context) -> Thread.ofVirtual().start(() -> kiln.update(sender))),
                 kiln.named("op", true),
@@ -96,13 +97,6 @@ public final class KilnCommand {
                 .map(Player::getUsername).sorted().toList();
         Chat.say(sender, names.isEmpty() ? "<gray>Nobody is online.</gray>"
                 : "<white>" + names.size() + " online</white> <gray>" + String.join(", ", names) + "</gray>");
-    }
-
-    private void memory(CommandSender sender) {
-        Runtime runtime = Runtime.getRuntime();
-        long megabyte = 1024 * 1024;
-        Chat.say(sender, "<white>" + (runtime.totalMemory() - runtime.freeMemory()) / megabyte
-                + " MB</white> <gray>in use, limit " + runtime.maxMemory() / megabyte + " MB</gray>");
     }
 
     private void version(CommandSender sender) {
@@ -142,8 +136,8 @@ public final class KilnCommand {
         System.exit(0);
     }
 
-    private Command admin(String name, CommandExecutor executor) {
-        Command command = new Command(name);
+    private Command admin(String name, CommandExecutor executor, String... aliases) {
+        Command command = new Command(name, aliases);
         command.setCondition((sender, input) -> operators.allows(sender));
         command.setDefaultExecutor(executor);
         return command;

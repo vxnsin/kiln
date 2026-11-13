@@ -1,6 +1,7 @@
 package dev.vensin.kiln.server;
 
 import dev.vensin.kiln.server.command.Operators;
+import dev.vensin.kiln.server.command.Performance;
 import dev.vensin.kiln.server.command.Chat;
 import dev.vensin.kiln.server.command.KilnCommand;
 import dev.vensin.kiln.server.console.Ansi;
@@ -68,6 +69,8 @@ final class Server {
         MinecraftServer server = MinecraftServer.init(settings.onlineMode() ? new Auth.Online() : new Auth.Offline());
         MinecraftServer.setBrandName("Kiln");
         GlobalEventHandler events = MinecraftServer.getGlobalEventHandler();
+        Performance performance = new Performance();
+        performance.register(events);
 
         // The port opens right away: whoever tries during startup gets a clear answer instead of a timeout.
         AtomicBoolean ready = new AtomicBoolean();
@@ -99,7 +102,7 @@ final class Server {
         listPlugins(report, loading, plugins);
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
-        KilnCommand.register(MinecraftServer.getCommandManager(), operators, plugins, version);
+        KilnCommand.register(MinecraftServer.getCommandManager(), operators, plugins, performance, version);
         MinecraftServer.getSchedulerManager().buildShutdownTask(() -> {
             plugins.disableAll();
             playerData.saveAll();

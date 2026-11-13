@@ -25,8 +25,8 @@ memory.
   at startup. A plugin that fails shows up in red with the reason; the server keeps going.
 - **Player data.** One line gives a plugin a value per player. It is loaded while the player connects and
   saved when they leave, as readable JSON files.
-- **One command for the server itself.** `/kiln` with `plugins`, `players`, `mem`, `version`, `update`, `op`,
-  `deop` and `stop`, in the console with tab completion and in game for operators.
+- **One command for the server itself.** `/kiln` with `plugins`, `players`, `performance`, `version`, `update`,
+  `op`, `deop` and `stop`, in the console with tab completion and in game for operators.
 - **One settings file.** `kiln.yml` is written on first start, with a comment on every option.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
   screen, and the server list says so too.
