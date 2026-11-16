@@ -120,6 +120,8 @@ java -jar kiln-0.1.0.jar
 
 Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kiln op <your name>` into the console.
 
+Everything about folders, containers, networks of servers and monitoring is in [docs/running.md](docs/running.md).
+
 ## Commands
 
 | Command | What it does |
