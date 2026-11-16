@@ -48,7 +48,8 @@ memory.
 - **Permission groups.** Groups with inheritance and wildcards in `permissions.yml`. Every `/kiln` command has
   its own permission, so a moderator can run maintenance without becoming operator.
 - **Bans and mutes with a reason and an end.** `/kiln ban griefer 7d broke the spawn` keeps someone out with a
-  clean screen that says why and until when. With Redis, a ban counts on every server.
+  clean screen that says why and until when; `/kiln mute` takes someone out of chat the same way. With Redis, both
+  count on every server.
 - **Maintenance and whitelist.** `/kiln maintenance on` (or `/kiln whitelist on`) lets in only operators and the
   players you allow. The server list says so, and the setting survives a restart.
 - **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message, every disconnect
