@@ -39,6 +39,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -127,14 +128,18 @@ final class Server {
         Maintenance maintenance = new Maintenance(
                 storage.forPlugin("kiln").table("server", Maintenance.State.class), operators);
         events.addListener(AsyncPlayerPreLoginEvent.class, event -> {
+            String name = event.getGameProfile().name();
             if (!ready.get()) {
                 event.getConnection().kick(Chat.screen("The server is still starting", "Give it a few seconds and join again."));
-            } else if (bans.active(event.getGameProfile().name()).isPresent()) {
-                event.getConnection().kick(Bans.screen(bans.active(event.getGameProfile().name()).get()));
-            } else if (!maintenance.lets(event.getGameProfile().name())) {
+                return;
+            }
+            Optional<Bans.Ban> ban = bans.active(name);
+            if (ban.isPresent()) {
+                event.getConnection().kick(Bans.screen(ban.get()));
+            } else if (!maintenance.lets(name)) {
                 event.getConnection().kick(maintenance.screen());
             } else if (MinecraftServer.getConnectionManager().getOnlinePlayers().size() >= settings.maxPlayers()
-                    && !operators.isOperator(event.getGameProfile().name())) {
+                    && !operators.isOperator(name)) {
                 event.getConnection().kick(Chat.screen("The server is full", "Try again in a moment."));
             }
         });
