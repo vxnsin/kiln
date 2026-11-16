@@ -5,6 +5,7 @@ import dev.vensin.kiln.api.Plugin;
 import dev.vensin.kiln.api.store.PlayerData;
 import dev.vensin.kiln.api.store.Table;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.Optional;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.MinecraftServer;
@@ -35,7 +36,7 @@ public final class ExamplePlugin implements Plugin {
             Player player = event.getPlayer();
             Visits own = visits.of(player);
             own.count++;
-            scores.put(player.getUsername().toLowerCase(), new Score(player.getUsername(), own.count));
+            scores.put(player.getUsername().toLowerCase(Locale.ROOT), new Score(player.getUsername(), own.count));
             if (own.count == 1 && announce) {
                 MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(online -> kiln.messages()
                         .send(online, "first-visit", Placeholder.unparsed("name", player.getUsername())));
