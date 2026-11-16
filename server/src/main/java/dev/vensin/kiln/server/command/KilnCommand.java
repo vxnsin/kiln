@@ -306,7 +306,8 @@ public final class KilnCommand {
     }
 
     private Command maintenanceCommand() {
-        Command command = admin("maintenance", "kiln.maintenance", (sender, context) -> maintenanceStatus(sender));
+        Command command = admin("maintenance", "kiln.maintenance", (sender, context) -> maintenanceStatus(sender),
+                "whitelist");
         command.addSubcommands(
                 admin("on", "kiln.maintenance", (sender, context) -> {
                     maintenance.set(true);

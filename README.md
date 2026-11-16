@@ -49,11 +49,13 @@ memory.
   has its own permission, so a moderator can run maintenance without becoming operator.
 - **Bans with a reason and an end.** `/kiln ban griefer 7d broke the spawn` keeps someone out with a clean
   screen that says why and until when. With Redis, a ban counts on every server.
-- **Maintenance.** `/kiln maintenance on` lets in only operators and the players you allow. The server list
+- **Maintenance and whitelist.** `/kiln maintenance on` (or `/kiln whitelist on`) lets in only operators and
+  the players you allow. The server list
   says so, and the setting survives a restart.
 - **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message, every
   disconnect screen, and the tab list. Chat lines, join and leave messages show group prefixes from
-  `permissions.yml` and can each be restyled or switched off.
+  `permissions.yml` and can each be restyled or switched off. Kiln's own screens
+  speak English or German, following `language` in `kiln.yml`.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
   screen instead of a timeout.
 - **A face in the server list.** The kiln pixel icon by default, or your own `server-icon.png`.
