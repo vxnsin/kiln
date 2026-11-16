@@ -1,9 +1,13 @@
 package dev.vensin.kiln.server.command;
 
 import com.sun.management.OperatingSystemMXBean;
+import dev.vensin.kiln.server.plugin.PluginTiming;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Supplier;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.event.GlobalEventHandler;
@@ -16,11 +20,15 @@ public final class Performance {
     private static final int WINDOW = 200;
     private static final double TICK_BUDGET_MILLIS = 50;
     private static final long CPU_SAMPLE_MILLIS = 2000;
+    private static final double TICKS_PER_SECOND = 20;
+    private static final PluginTiming NOTHING = new PluginTiming();
 
     private final double[] tickMillis = new double[WINDOW];
     private final long[] tickNanos = new long[WINDOW];
     private final long startedAt = System.nanoTime();
     private int ticks;
+    private Map<String, PluginTiming> timings = Map.of();
+    private Supplier<List<String>> loadedPlugins = List::of;
     private volatile double cpuLoad = -1;
 
     public void register(GlobalEventHandler events) {
@@ -47,8 +55,36 @@ public final class Performance {
         Chat.item(sender, row("Players", "<white>"
                 + MinecraftServer.getConnectionManager().getOnlinePlayers().size() + "</white> online"));
         Chat.item(sender, row("Uptime", "<white>" + uptime() + "</white>"));
+        reportPlugins(sender);
     }
 
+
+    /** Starts measuring plugins; their share shows up as its own block in the report. */
+    public void plugins(Map<String, PluginTiming> timings, Supplier<List<String>> loaded) {
+        this.timings = timings;
+        this.loadedPlugins = loaded;
+        MinecraftServer.getSchedulerManager().buildTask(() -> timings.values().forEach(PluginTiming::roll))
+                .delay(Duration.ofSeconds(1)).repeat(Duration.ofSeconds(1)).schedule();
+    }
+
+    private void reportPlugins(CommandSender sender) {
+        List<String> names = loadedPlugins.get();
+        if (names.isEmpty()) {
+            return;
+        }
+        int width = names.stream().mapToInt(String::length).max().orElse(0);
+        List<Map.Entry<String, Double>> perTick = names.stream()
+                .map(name -> Map.entry(name, timings.getOrDefault(name, NOTHING).millisPerSecond() / TICKS_PER_SECOND))
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                .toList();
+        Chat.item(sender, "<gold>Plugins</gold>  <gray>time in their listeners and timers, last 10 s</gray>");
+        for (Map.Entry<String, Double> entry : perTick) {
+            double share = entry.getValue() / TICK_BUDGET_MILLIS * 100;
+            String color = share < 10 ? "white" : share < 40 ? "yellow" : "red";
+            Chat.item(sender, String.format(Locale.ROOT, "  <white>%-" + width + "s</white>  <%s>%.3f ms</%s> "
+                    + "<gray>per tick · %.1f %%</gray>", entry.getKey(), color, entry.getValue(), color, share));
+        }
+    }
     private synchronized String ticksLine() {
         int count = Math.min(ticks, WINDOW);
         if (count < 2) {

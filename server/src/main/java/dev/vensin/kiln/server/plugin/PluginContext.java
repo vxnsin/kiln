@@ -1,5 +1,6 @@
 package dev.vensin.kiln.server.plugin;
 
+import dev.vensin.kiln.api.Events;
 import dev.vensin.kiln.api.Kiln;
 import dev.vensin.kiln.api.PluginInfo;
 import dev.vensin.kiln.api.Tasks;
@@ -10,7 +11,6 @@ import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.command.Permissions;
 import dev.vensin.kiln.server.store.FileStore;
 import dev.vensin.kiln.server.store.PlayerDataManager;
-import dev.vensin.kiln.server.world.WorldFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -46,25 +46,29 @@ final class PluginContext implements Kiln {
     private final Permissions permissions;
     private final PlayerDataManager playerData;
     private final Logger logger;
-    private final EventNode<Event> events;
+    private final EventNode<Event> node;
+    private final PluginEvents events;
+    private final PluginTiming timing;
     private final List<Command> commands = new ArrayList<>();
     private final List<PlayerData<?>> data = new ArrayList<>();
     private final PluginWorlds worlds;
-    private final PluginTasks tasks = new PluginTasks();
+    private final PluginTasks tasks;
 
-    PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, Path data, Operators operators,
-                  PlayerDataManager playerData, WorldFiles worldFiles, Permissions permissions) {
+    PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, Path data, PluginServices services) {
         this.info = info;
         this.loader = loader;
         this.folder = folder;
         this.store = new FileStore(data);
-        this.operators = operators;
-        this.permissions = permissions;
-        this.playerData = playerData;
-        this.worlds = new PluginWorlds(worldFiles);
+        this.operators = services.operators();
+        this.permissions = services.permissions();
+        this.playerData = services.playerData();
+        this.worlds = new PluginWorlds(services.worlds());
+        this.timing = services.timing(info.name());
+        this.tasks = new PluginTasks(timing);
         this.logger = LoggerFactory.getLogger(info.name());
-        this.events = EventNode.all("plugin-" + info.name());
-        MinecraftServer.getGlobalEventHandler().addChild(events);
+        this.node = EventNode.all("plugin-" + info.name());
+        this.events = new PluginEvents(node, timing);
+        MinecraftServer.getGlobalEventHandler().addChild(node);
     }
 
     @Override
@@ -79,7 +83,7 @@ final class PluginContext implements Kiln {
 
 
     @Override
-    public EventNode<Event> events() {
+    public Events events() {
         return events;
     }
 
@@ -103,7 +107,7 @@ final class PluginContext implements Kiln {
     void close() {
         tasks.cancelAll();
         worlds.closeAll();
-        MinecraftServer.getGlobalEventHandler().removeChild(events);
+        MinecraftServer.getGlobalEventHandler().removeChild(node);
         commands.forEach(MinecraftServer.getCommandManager()::unregister);
         commands.clear();
         data.forEach(playerData::remove);

@@ -12,6 +12,7 @@ import dev.vensin.kiln.server.console.InteractiveConsole;
 import dev.vensin.kiln.server.console.StartReport;
 import dev.vensin.kiln.server.console.Terminal;
 import dev.vensin.kiln.server.plugin.PluginManager;
+import dev.vensin.kiln.server.plugin.PluginServices;
 import dev.vensin.kiln.server.plugin.PluginWatcher;
 import dev.vensin.kiln.server.round.EmptyShutdown;
 import dev.vensin.kiln.server.round.HealthEndpoint;
@@ -131,8 +132,9 @@ final class Server {
         StartReport.Step loading = report.beginQuietly("Plugins");
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
-        PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), operators, playerData, worlds,
-                permissions);
+        PluginServices services = new PluginServices(operators, permissions, playerData, worlds);
+        PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), services);
+        performance.plugins(services.timings(), () -> plugins.loaded().stream().map(loaded -> loaded.info().name()).toList());
         plugins.loadNew();
         listPlugins(report, loading, plugins);
 

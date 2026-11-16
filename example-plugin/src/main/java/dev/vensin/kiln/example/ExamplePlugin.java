@@ -21,7 +21,7 @@ public final class ExamplePlugin implements Plugin {
         String greeting = String.valueOf(kiln.config().getOrDefault("greeting", "<gold>Welcome, <name>!</gold>"));
         PlayerData<Visits> visits = kiln.playerData("visits", Visits.class, Visits::new);
 
-        kiln.events().addListener(PlayerSpawnEvent.class, event -> {
+        kiln.events().on(PlayerSpawnEvent.class, event -> {
             if (!event.isFirstSpawn()) {
                 return;
             }

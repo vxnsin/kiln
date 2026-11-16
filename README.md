@@ -36,6 +36,8 @@ memory.
   your server name and two colors, which every chat message and disconnect screen uses.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
   screen, and the server list says so too.
+- **Which plugin is slow.** `/kiln performance` shows tick time, memory, CPU and the world, and below that the
+  time each plugin spends in its listeners and timers per tick, slowest first.
 - **Permission groups.** `permissions.yml` holds groups with permissions and inheritance, `build.*` covers
   everything below it, and `/kiln group add <player> <group>` hands them out. Every `/kiln` command has its own
   permission, so a moderator can get `kiln.maintenance` without becoming operator.
@@ -142,7 +144,7 @@ public final class HelloPlugin implements Plugin {
     public void enable(Kiln kiln) {
         PlayerData<Visits> visits = kiln.playerData("visits", Visits.class, Visits::new);
 
-        kiln.events().addListener(PlayerSpawnEvent.class, event -> {
+        kiln.events().on(PlayerSpawnEvent.class, event -> {
             Visits own = visits.of(event.getPlayer());
             own.count++;
             event.getPlayer().sendMessage("Visit number " + own.count);
@@ -154,7 +156,7 @@ public final class HelloPlugin implements Plugin {
 That is a complete plugin with saved data. The full version, with a config file and a command, is in
 [`example-plugin/`](example-plugin).
 
-Swapping works because Kiln knows what belongs to a plugin: listeners registered on `kiln.events()`, commands
+Swapping works because Kiln knows what belongs to a plugin: listeners added with `kiln.events().on(...)`, commands
 passed to `kiln.commands(...)`, timers from `kiln.tasks()`, worlds from `kiln.worlds()` and its player data.
 Threads and executors a plugin starts itself are its
 own to stop in `disable()`.
@@ -180,7 +182,7 @@ What a plugin gets from Kiln:
 
 | Call | What it does |
 |---|---|
-| `kiln.events()` | The place to listen to events; cleared when the plugin is unloaded or swapped |
+| `kiln.events().on(type, handler)` | Listen to an event; timed per plugin and removed when the plugin goes |
 | `kiln.commands(...)` | Registers commands that go away with the plugin |
 | `kiln.playerData(name, type, fresh)` | A value per player, loaded on join and saved on leave |
 | `kiln.store().table(name, type)` | Key-value storage for everything that is not per player |
