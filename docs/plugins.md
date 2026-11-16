@@ -208,6 +208,8 @@ Kiln removes, on unload or swap: listeners from `kiln.events()`, commands from `
 `kiln.tasks()`, worlds from `kiln.worlds()`, network subscriptions, and it saves player data. What it cannot
 see is yours to stop in `disable()`: threads, executors, sockets, listeners on the global event handler.
 
+If the new build throws in `enable`, Kiln starts the previous version again and says so in the console.
+
 Static state does not survive a swap either. The new jar gets a new class loader, so keep anything that has
 to outlive it in player data or a table.
 

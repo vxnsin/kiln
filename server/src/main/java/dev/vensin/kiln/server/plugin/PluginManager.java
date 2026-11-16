@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public final class PluginManager {
@@ -89,7 +90,7 @@ public final class PluginManager {
                     progress = true;
                 } else if (loaded.keySet().containsAll(info.depends())) {
                     waiting.remove(info.name());
-                    Loaded plugin = enable(info, jars.get(info.name()));
+                    Loaded plugin = enable(info, jars.get(info.name()), jars.get(info.name()));
                     if (plugin != null) {
                         added.add(plugin);
                     }
@@ -103,6 +104,44 @@ public final class PluginManager {
     }
 
 
+
+    /** What was running before a swap, kept so a build that fails to start does not take the plugin down. */
+    public record Backup(String name, String version, Path jar, Path source) {}
+
+    public synchronized Optional<Backup> backup(String name) {
+        Loaded plugin = loaded.get(name);
+        if (plugin == null) {
+            return Optional.empty();
+        }
+        try {
+            Path jar = directory.resolve(COPIES).resolve(name + "-" + ProcessHandle.current().pid() + "-backup-"
+                    + copies++ + ".jar");
+            Files.copy(plugin.copy(), jar, StandardCopyOption.REPLACE_EXISTING);
+            return Optional.of(new Backup(name, plugin.info().version(), jar, plugin.source()));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
+    /** Starts the kept version again under its original jar's name; the backup file is gone afterwards. */
+    public synchronized boolean restore(Backup backup) {
+        try {
+            PluginInfo info = PluginDescriptor.read(backup.jar());
+            return !loaded.containsKey(info.name()) && enable(info, backup.jar(), backup.source()) != null;
+        } catch (IOException e) {
+            return false;
+        } finally {
+            discard(backup);
+        }
+    }
+
+    public void discard(Backup backup) {
+        try {
+            Files.deleteIfExists(backup.jar());
+        } catch (IOException stillOpen) {
+            // removed on the next start
+        }
+    }
     /** The plugin that was loaded from this jar, if any. */
     public synchronized String nameOf(Path jar) {
         return loaded.values().stream().filter(plugin -> plugin.source().equals(jar)).map(plugin -> plugin.info().name())
@@ -147,7 +186,7 @@ public final class PluginManager {
         reversed.forEach(this::release);
     }
 
-    private Loaded enable(PluginInfo info, Path jar) {
+    private Loaded enable(PluginInfo info, Path jar, Path source) {
         Path copy = null;
         PluginClassLoader loader = null;
         PluginContext context = null;
@@ -166,7 +205,7 @@ public final class PluginManager {
             Plugin plugin = (Plugin) main.getDeclaredConstructor().newInstance();
             context = new PluginContext(info, loader, directory.resolve(info.name()), services);
             plugin.enable(context);
-            Loaded result = new Loaded(info, plugin, loader, context, jar, copy);
+            Loaded result = new Loaded(info, plugin, loader, context, source, copy);
             loaded.put(info.name(), result);
             return result;
         } catch (ClassNotFoundException e) {

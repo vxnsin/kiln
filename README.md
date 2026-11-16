@@ -25,7 +25,7 @@ memory.
 
 - **Plugins you can swap while it runs.** Replace a jar in `plugins/` and the new build takes over within a
   second, no restart and no command. Delete one and it is unloaded, add one and it is loaded. Player data is
-  saved in between.
+  saved in between, and a build that fails to start leaves the previous version running.
 - **A plugin project in one line.** `java -jar kiln.jar new my-plugin` creates a Gradle project that builds
   straight into the running server. Save, build, and the change is live.
 - **Which plugin is slow.** `/kiln performance` and the dashboard show the time each plugin spends per tick,

@@ -351,15 +351,24 @@ public final class KilnCommand {
         }
         List<String> chain = new ArrayList<>();
         collectDependents(name, chain);
+        Optional<PluginManager.Backup> backup = plugins.backup(name);
         for (int i = chain.size() - 1; i >= 0; i--) {
             if (!unload(sender, chain.get(i), false)) {
+                backup.ifPresent(plugins::discard);
                 return;
             }
         }
-        List<PluginManager.Loaded> added = loadNew(sender);
-        added.stream().filter(loaded -> loaded.info().name().equals(name)).findFirst().ifPresent(loaded ->
-                Chat.say(sender, "<green>" + name + " swapped.</green> <gray>" + before + " → " + loaded.info().version()
-                        + (chain.size() > 1 ? ", with " + String.join(", ", chain.subList(1, chain.size())) : "") + "</gray>"));
+        Optional<PluginManager.Loaded> swapped = loadNew(sender).stream()
+                .filter(loaded -> loaded.info().name().equals(name)).findFirst();
+        if (swapped.isPresent()) {
+            backup.ifPresent(plugins::discard);
+            Chat.say(sender, "<green>" + name + " swapped.</green> <gray>" + before + " → " + swapped.get().info().version()
+                    + (chain.size() > 1 ? ", with " + String.join(", ", chain.subList(1, chain.size())) : "") + "</gray>");
+        } else if (backup.isPresent() && plugins.restore(backup.get())) {
+            Chat.say(sender, "<yellow>The new build of " + name + " did not start, so " + before
+                    + " is running again.</yellow> <gray>Fix it and replace the jar once more.</gray>");
+            loadNew(sender);
+        }
     }
 
     /** The plugin, then everything that needs it, in an order where each comes after what it needs. */
