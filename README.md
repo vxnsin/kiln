@@ -127,6 +127,7 @@ Everything about folders, containers, networks of servers and monitoring is in [
 
 | Command | What it does |
 |---|---|
+| `/kiln menu` | In game: a Minecraft dialog with the most used commands as buttons |
 | `/kiln plugins` | Loaded plugins and their versions |
 | `/kiln reload <plugin>`, `load`, `unload <plugin>` | Swap, add or remove plugins on the running server |
 | `/kiln install <owner/repo>` | Fetch a plugin from the latest GitHub release of a repository, or from a https link |

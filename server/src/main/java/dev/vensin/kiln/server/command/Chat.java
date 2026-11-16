@@ -50,6 +50,11 @@ public final class Chat {
         say(sender, "<red>" + miniMessage + "</red>");
     }
 
+    /** The server name in its colors, for titles. */
+    public static Component title() {
+        return MINI_MESSAGE.deserialize(brand);
+    }
+
     /** The text of a disconnect screen: who is talking, what happened, what to do about it. */
     public static Component screen(String headline, String advice) {
         return MINI_MESSAGE.deserialize(brand + "<newline><newline><white>" + headline + "</white><newline><gray>"

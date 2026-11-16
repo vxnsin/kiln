@@ -27,6 +27,13 @@ import net.minestom.server.command.builder.arguments.ArgumentWord;
 import net.minestom.server.command.builder.arguments.number.ArgumentInteger;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
+import net.minestom.server.dialog.Dialog;
+import net.minestom.server.dialog.DialogAction;
+import net.minestom.server.dialog.DialogActionButton;
+import net.minestom.server.dialog.DialogAfterAction;
+import net.minestom.server.dialog.DialogBody;
+import net.minestom.server.dialog.DialogMetadata;
+import net.kyori.adventure.text.Component;
 import net.minestom.server.entity.Player;
 
 /** Everything the server itself offers lives under /kiln, so plugins keep the rest of the namespace. */
@@ -37,6 +44,7 @@ public final class KilnCommand {
     private static final Map<String, String> HELP = new LinkedHashMap<>();
 
     static {
+        HELP.put("menu", "the most used commands as buttons, in game");
         HELP.put("plugins", "loaded plugins and their versions");
         HELP.put("reload [plugin]", "swap a plugin for the jar now in the folder");
         HELP.put("load", "load jars that were added to the folder");
@@ -104,6 +112,13 @@ public final class KilnCommand {
         });
         root.addSubcommands(
                 kiln.admin("help", "kiln.help", (sender, context) -> kiln.help(sender)),
+                kiln.admin("menu", "kiln.help", (sender, context) -> {
+                    if (sender instanceof Player player) {
+                        kiln.openMenu(player);
+                    } else {
+                        kiln.help(sender);
+                    }
+                }),
                 kiln.admin("plugins", "kiln.plugins", (sender, context) -> kiln.plugins(sender)),
                 kiln.admin("players", "kiln.players", (sender, context) -> kiln.players(sender)),
                 kiln.admin("servers", "kiln.servers", (sender, context) -> kiln.servers(sender)),
@@ -654,5 +669,35 @@ public final class KilnCommand {
             }
         }), source);
         return command;
+    }
+
+    /** A native Minecraft dialog with the most used commands as buttons, for operators in game. */
+    private void openMenu(Player player) {
+        int online = MinecraftServer.getConnectionManager().getOnlinePlayers().size();
+        Component summary = MiniMessage.miniMessage().deserialize("<gray>Kiln " + version + " · " + online
+                + (online == 1 ? " player" : " players") + " online · " + plugins.loaded().size() + " plugins · "
+                + "maintenance " + (maintenance.enabled() ? "<yellow>on</yellow>" : "off") + "</gray>");
+        player.showDialog(menu(summary, maintenance.enabled()));
+    }
+
+    static Dialog menu(Component summary, boolean maintenanceOn) {
+        List<DialogActionButton> buttons = new ArrayList<>();
+        button(buttons, "Plugins", "kiln plugins");
+        button(buttons, "Performance", "kiln performance");
+        button(buttons, "Players", "kiln players");
+        button(buttons, "Servers", "kiln servers");
+        button(buttons, maintenanceOn ? "Maintenance off" : "Maintenance on",
+                maintenanceOn ? "kiln maintenance off" : "kiln maintenance on");
+        button(buttons, "Reload kiln.yml", "kiln config reload");
+        button(buttons, "Resend pack", "kiln pack");
+        button(buttons, "Profile 10 s", "kiln profile 10");
+        DialogMetadata metadata = new DialogMetadata(Chat.title(), Chat.title(), true, false, DialogAfterAction.CLOSE,
+                List.of(new DialogBody.PlainMessage(summary, DialogBody.PlainMessage.DEFAULT_WIDTH)), List.of());
+        return new Dialog.MultiAction(metadata, buttons, null, 2);
+    }
+
+    private static void button(List<DialogActionButton> buttons, String label, String command) {
+        buttons.add(new DialogActionButton(Component.text(label), Component.text("/" + command),
+                DialogActionButton.DEFAULT_WIDTH, new DialogAction.RunCommand("/" + command)));
     }
 }

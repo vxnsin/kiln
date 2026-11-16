@@ -15,7 +15,8 @@ Java 25, and connect with Minecraft 26.2.
 ### While it runs
 
 - A console with a pixel icon, a spinner per startup step, plugins as a tree, history and tab completion
-- Everything under `/kiln`: plugins, players, kick, ban, say, maintenance, groups, game mode, teleport, worlds,
+- Everything under `/kiln`, and in game as a native Minecraft dialog with `/kiln menu`: plugins, players, kick,
+  ban, say, maintenance, groups, game mode, teleport, worlds,
   resource pack, config reload, update check and a stop with a countdown
 - Permission groups with inheritance, wildcards and chat prefixes in `permissions.yml`
 - Chat, join and leave messages and the tab list styled from `kiln.yml`, with your server name and colors
