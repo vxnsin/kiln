@@ -4,6 +4,7 @@ import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.command.Performance;
 import dev.vensin.kiln.server.command.Permissions;
 import dev.vensin.kiln.server.chat.ChatStyle;
+import dev.vensin.kiln.server.command.Bans;
 import dev.vensin.kiln.server.command.Chat;
 import dev.vensin.kiln.server.command.KilnCommand;
 import dev.vensin.kiln.server.command.Maintenance;
@@ -112,11 +113,14 @@ final class Server {
         AtomicBoolean ready = new AtomicBoolean();
         Operators operators = new Operators(Path.of("ops.txt"));
         Permissions permissions = new Permissions(Path.of("permissions.yml"), operators);
+        Bans bans = new Bans(storage.forPlugin("kiln").table("bans", Bans.Ban.class));
         Maintenance maintenance = new Maintenance(
                 storage.forPlugin("kiln").table("server", Maintenance.State.class), operators);
         events.addListener(AsyncPlayerPreLoginEvent.class, event -> {
             if (!ready.get()) {
                 event.getConnection().kick(Chat.screen("The server is still starting", "Give it a few seconds and join again."));
+            } else if (bans.active(event.getGameProfile().name()).isPresent()) {
+                event.getConnection().kick(Bans.screen(bans.active(event.getGameProfile().name()).get()));
             } else if (!maintenance.lets(event.getGameProfile().name())) {
                 event.getConnection().kick(maintenance.screen());
             }
@@ -191,7 +195,7 @@ final class Server {
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
         KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, permissions, plugins,
-                performance, maintenance, version, pack, network, worlds);
+                performance, maintenance, version, pack, network, worlds, bans);
         if (settings.watchPlugins()) {
             watch(plugins, kiln);
         }

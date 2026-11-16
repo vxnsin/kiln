@@ -44,6 +44,8 @@ memory.
   updated every two seconds.
 - **Permission groups.** Groups with inheritance and wildcards in `permissions.yml`. Every `/kiln` command
   has its own permission, so a moderator can run maintenance without becoming operator.
+- **Bans with a reason and an end.** `/kiln ban griefer 7d broke the spawn` keeps someone out with a clean
+  screen that says why and until when. With Redis, a ban counts on every server.
 - **Maintenance.** `/kiln maintenance on` lets in only operators and the players you allow. The server list
   says so, and the setting survives a restart.
 - **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message, every
@@ -126,6 +128,7 @@ Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kil
 | `/kiln gm <mode> [player]`, `tp <player> [target]` | Game mode and teleporting while you build and test |
 | `/kiln world [name]`, `world home` | Walk through a map from `worlds/` in a throwaway copy |
 | `/kiln kick <player> [reason]` | Send a player away with a clean screen |
+| `/kiln ban <player> [30m|12h|7d|2w] [reason]`, `unban`, `bans` | Keep a player out, for a while or for good; shared through Redis |
 | `/kiln say <message>` | Announce something to everyone |
 | `/kiln maintenance on`, `off`, `allow <name>`, `deny <name>` | Let only operators and allowed players in |
 | `/kiln group add <player> <group>`, `remove`, `reload` | Permission groups from `permissions.yml` |

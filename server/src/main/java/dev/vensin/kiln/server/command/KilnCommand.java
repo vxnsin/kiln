@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -54,6 +55,8 @@ public final class KilnCommand {
         HELP.put("op [name]", "give a player admin rights");
         HELP.put("deop [name]", "take them away again");
         HELP.put("kick [player] [reason]", "send a player away with a reason");
+        HELP.put("ban [player] [time] [reason]", "keep a player out, for good or for 30m, 12h, 7d, 2w");
+        HELP.put("unban [player]", "let them back in; bans lists who is out");
         HELP.put("say [message]", "announce something to everyone");
         HELP.put("stop [seconds] [reason]", "shut down, now or after a visible countdown");
     }
@@ -65,10 +68,11 @@ public final class KilnCommand {
     private final String version;
     private final ResourcePackHost pack;
     private final NetworkService network;
+    private final Bans bans;
     private final Countdown countdown = new Countdown();
 
     private KilnCommand(Operators operators, Permissions permissions, PluginManager plugins, Maintenance maintenance,
-                        String version, ResourcePackHost pack, NetworkService network) {
+                        String version, ResourcePackHost pack, NetworkService network, Bans bans) {
         this.operators = operators;
         this.permissions = permissions;
         this.plugins = plugins;
@@ -76,13 +80,14 @@ public final class KilnCommand {
         this.version = version;
         this.pack = pack;
         this.network = network;
+        this.bans = bans;
     }
 
     public static KilnCommand register(CommandManager commands, Operators operators, Permissions permissions,
                                        PluginManager plugins,
                                 Performance performance, Maintenance maintenance, String version,
-                                ResourcePackHost pack, NetworkService network, WorldFiles worlds) {
-        KilnCommand kiln = new KilnCommand(operators, permissions, plugins, maintenance, version, pack, network);
+                                ResourcePackHost pack, NetworkService network, WorldFiles worlds, Bans bans) {
+        KilnCommand kiln = new KilnCommand(operators, permissions, plugins, maintenance, version, pack, network, bans);
         Command root = new Command(NAME);
         root.setDefaultExecutor((sender, context) -> {
             if (permissions.has(sender, "kiln.help")) {
@@ -110,6 +115,9 @@ public final class KilnCommand {
                 kiln.groupCommand(),
                 kiln.admin("pack", "kiln.pack", (sender, context) -> kiln.resendPack(sender)),
                 kiln.kickCommand(),
+                kiln.banCommand(),
+                kiln.unbanCommand(),
+                kiln.admin("bans", "kiln.ban", (sender, context) -> kiln.listBans(sender)),
                 kiln.sayCommand(),
                 kiln.stopCommand());
 
@@ -482,5 +490,58 @@ public final class KilnCommand {
                     .orElse("<gray>" + name + " is not online anywhere.</gray>"));
         }, player);
         return command;
+    }
+
+    private Command banCommand() {
+        ArgumentWord player = ArgumentType.Word("player");
+        player.setSuggestionCallback((sender, context, suggestion) -> MinecraftServer.getConnectionManager()
+                .getOnlinePlayers().forEach(online -> suggestion.addEntry(new SuggestionEntry(online.getUsername()))));
+        ArgumentStringArray rest = ArgumentType.StringArray("duration and reason");
+        Command command = admin("ban", "kiln.ban",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln ban [player] [30m|12h|7d|2w] [reason]</gray>"));
+        CommandExecutor ban = (sender, context) -> {
+            String name = context.get(player);
+            List<String> words = context.has(rest) ? new ArrayList<>(List.of(context.get(rest))) : new ArrayList<>();
+            Duration length = words.isEmpty() ? null : Bans.parse(words.getFirst());
+            if (length != null) {
+                words.removeFirst();
+            }
+            String by = sender instanceof Player self ? self.getUsername() : "console";
+            Bans.Ban done = bans.ban(name, length, String.join(" ", words), by);
+            Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name);
+            if (online != null) {
+                online.kick(Bans.screen(done));
+            }
+            Chat.say(sender, "<green>" + name + " is banned " + Bans.describe(done) + ".</green>");
+        };
+        command.addSyntax(ban, player);
+        command.addSyntax(ban, player, rest);
+        return command;
+    }
+
+    private Command unbanCommand() {
+        ArgumentWord player = ArgumentType.Word("player");
+        player.setSuggestionCallback((sender, context, suggestion) -> bans.all()
+                .forEach(ban -> suggestion.addEntry(new SuggestionEntry(ban.name()))));
+        Command command = admin("unban", "kiln.ban",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln unban [player]</gray>"));
+        command.addSyntax((sender, context) -> {
+            String name = context.get(player);
+            Chat.say(sender, bans.unban(name) ? "<green>" + name + " may join again.</green>"
+                    : "<gray>" + name + " was not banned.</gray>");
+        }, player);
+        return command;
+    }
+
+    private void listBans(CommandSender sender) {
+        List<Bans.Ban> all = bans.all();
+        if (all.isEmpty()) {
+            Chat.say(sender, "<gray>Nobody is banned.</gray>");
+            return;
+        }
+        Chat.say(sender, "<white>" + all.size() + (all.size() == 1 ? " ban" : " bans") + "</white>");
+        all.forEach(ban -> Chat.item(sender, "<white>" + ban.name() + "</white> <gray>" + Bans.describe(ban) + ", by "
+                + ban.by() + (ban.reason().isBlank() ? "" : " · " + MiniMessage.miniMessage().escapeTags(ban.reason()))
+                + "</gray>"));
     }
 }
