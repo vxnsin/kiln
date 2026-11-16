@@ -7,6 +7,7 @@ import dev.vensin.kiln.api.Worlds;
 import dev.vensin.kiln.api.store.PlayerData;
 import dev.vensin.kiln.api.store.Store;
 import dev.vensin.kiln.server.command.Operators;
+import dev.vensin.kiln.server.command.Permissions;
 import dev.vensin.kiln.server.store.FileStore;
 import dev.vensin.kiln.server.store.PlayerDataManager;
 import dev.vensin.kiln.server.world.WorldFiles;
@@ -42,6 +43,7 @@ final class PluginContext implements Kiln {
     private final Path folder;
     private final Store store;
     private final Operators operators;
+    private final Permissions permissions;
     private final PlayerDataManager playerData;
     private final Logger logger;
     private final EventNode<Event> events;
@@ -51,12 +53,13 @@ final class PluginContext implements Kiln {
     private final PluginTasks tasks = new PluginTasks();
 
     PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, Path data, Operators operators,
-                  PlayerDataManager playerData, WorldFiles worldFiles) {
+                  PlayerDataManager playerData, WorldFiles worldFiles, Permissions permissions) {
         this.info = info;
         this.loader = loader;
         this.folder = folder;
         this.store = new FileStore(data);
         this.operators = operators;
+        this.permissions = permissions;
         this.playerData = playerData;
         this.worlds = new PluginWorlds(worldFiles);
         this.logger = LoggerFactory.getLogger(info.name());
@@ -156,5 +159,10 @@ final class PluginContext implements Kiln {
     @Override
     public boolean isOperator(CommandSender sender) {
         return operators.allows(sender);
+    }
+
+    @Override
+    public boolean hasPermission(CommandSender sender, String permission) {
+        return permissions.has(sender, permission);
     }
 }

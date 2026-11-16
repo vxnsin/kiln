@@ -37,52 +37,58 @@ public final class KilnCommand {
         HELP.put("version", "the running version");
         HELP.put("update", "look for a newer release and fetch it");
         HELP.put("maintenance", "let only operators and allowed players in");
+        HELP.put("group", "permission groups from permissions.yml");
         HELP.put("op [name]", "give a player admin rights");
         HELP.put("deop [name]", "take them away again");
         HELP.put("stop", "save and shut down");
     }
 
     private final Operators operators;
+    private final Permissions permissions;
     private final PluginManager plugins;
     private final Maintenance maintenance;
     private final String version;
 
-    private KilnCommand(Operators operators, PluginManager plugins, Maintenance maintenance, String version) {
+    private KilnCommand(Operators operators, Permissions permissions, PluginManager plugins, Maintenance maintenance,
+                        String version) {
         this.operators = operators;
+        this.permissions = permissions;
         this.plugins = plugins;
         this.maintenance = maintenance;
         this.version = version;
     }
 
-    public static KilnCommand register(CommandManager commands, Operators operators, PluginManager plugins,
+    public static KilnCommand register(CommandManager commands, Operators operators, Permissions permissions,
+                                       PluginManager plugins,
                                 Performance performance, Maintenance maintenance, String version) {
-        KilnCommand kiln = new KilnCommand(operators, plugins, maintenance, version);
+        KilnCommand kiln = new KilnCommand(operators, permissions, plugins, maintenance, version);
         Command root = new Command(NAME);
         root.setDefaultExecutor((sender, context) -> {
-            if (operators.allows(sender)) {
+            if (permissions.has(sender, "kiln.help")) {
                 kiln.help(sender);
             } else {
                 kiln.version(sender);
             }
         });
         root.addSubcommands(
-                kiln.admin("help", (sender, context) -> kiln.help(sender)),
-                kiln.admin("plugins", (sender, context) -> kiln.plugins(sender)),
-                kiln.admin("players", (sender, context) -> kiln.players(sender)),
+                kiln.admin("help", "kiln.help", (sender, context) -> kiln.help(sender)),
+                kiln.admin("plugins", "kiln.plugins", (sender, context) -> kiln.plugins(sender)),
+                kiln.admin("players", "kiln.players", (sender, context) -> kiln.players(sender)),
                 kiln.withPlugin("reload", kiln::reload),
-                kiln.admin("load", (sender, context) -> MinecraftServer.getSchedulerManager()
+                kiln.admin("load", "kiln.load", (sender, context) -> MinecraftServer.getSchedulerManager()
                         .scheduleNextTick(() -> kiln.load(sender))),
                 kiln.withPlugin("unload", (sender, name) -> kiln.unload(sender, name, true)),
-                kiln.admin("performance", (sender, context) -> performance.report(sender), "perf"),
-                kiln.admin("version", (sender, context) -> kiln.version(sender)),
-                kiln.admin("update", (sender, context) -> Thread.ofVirtual().start(() -> kiln.update(sender))),
+                kiln.admin("performance", "kiln.performance", (sender, context) -> performance.report(sender), "perf"),
+                kiln.admin("version", "kiln.version", (sender, context) -> kiln.version(sender)),
+                kiln.admin("update", "kiln.update", (sender, context) -> Thread.ofVirtual().start(() -> kiln.update(sender))),
                 kiln.withName("op", "op", (sender, name) -> kiln.change(sender, name, true)),
                 kiln.withName("deop", "deop", (sender, name) -> kiln.change(sender, name, false)),
                 kiln.maintenanceCommand(),
-                kiln.admin("stop", (sender, context) -> kiln.stop(sender)));
+                kiln.groupCommand(),
+                kiln.admin("stop", "kiln.stop", (sender, context) -> kiln.stop(sender)));
 
         // Typing just "stop" into a console is a habit worth keeping.
-        Command stop = kiln.admin("stop", (sender, context) -> kiln.stop(sender));
+        Command stop = kiln.admin("stop", "kiln.stop", (sender, context) -> kiln.stop(sender));
         commands.register(root, stop);
         return kiln;
     }
@@ -151,9 +157,9 @@ public final class KilnCommand {
         System.exit(0);
     }
 
-    private Command admin(String name, CommandExecutor executor, String... aliases) {
+    private Command admin(String name, String permission, CommandExecutor executor, String... aliases) {
         Command command = new Command(name, aliases);
-        command.setCondition((sender, input) -> operators.allows(sender));
+        command.setCondition((sender, input) -> permissions.has(sender, permission));
         command.setDefaultExecutor(executor);
         return command;
     }
@@ -176,13 +182,13 @@ public final class KilnCommand {
     }
 
     private Command maintenanceCommand() {
-        Command command = admin("maintenance", (sender, context) -> maintenanceStatus(sender));
+        Command command = admin("maintenance", "kiln.maintenance", (sender, context) -> maintenanceStatus(sender));
         command.addSubcommands(
-                admin("on", (sender, context) -> {
+                admin("on", "kiln.maintenance", (sender, context) -> {
                     maintenance.set(true);
                     Chat.say(sender, "<yellow>Maintenance is on.</yellow> <gray>Only operators and allowed players get in.</gray>");
                 }),
-                admin("off", (sender, context) -> {
+                admin("off", "kiln.maintenance", (sender, context) -> {
                     maintenance.set(false);
                     Chat.say(sender, "<green>Maintenance is off.</green> <gray>Everyone can join again.</gray>");
                 }),
@@ -205,7 +211,8 @@ public final class KilnCommand {
 
     private Command withName(String name, String usage, BiConsumer<CommandSender, String> action) {
         ArgumentWord player = ArgumentType.Word("name");
-        Command command = admin(name, (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln " + usage + " [name]</gray>"));
+        Command command = admin(name, "kiln." + usage.split(" ")[0],
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln " + usage + " [name]</gray>"));
         command.addSyntax((sender, context) -> action.accept(sender, context.get(player)), player);
         return command;
     }
@@ -215,7 +222,8 @@ public final class KilnCommand {
         plugin.setSuggestionCallback((sender, context, suggestion) -> pluginNames()
                 .forEach(loaded -> suggestion.addEntry(new SuggestionEntry(loaded))));
         InteractiveConsole.suggest(name, this::pluginNames);
-        Command command = admin(name, (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln " + name + " [plugin]</gray>"));
+        Command command = admin(name, "kiln." + name,
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln " + name + " [plugin]</gray>"));
         // Swapping happens between two ticks, so no event is halfway through a plugin that is going away.
         command.addSyntax((sender, context) -> MinecraftServer.getSchedulerManager()
                 .scheduleNextTick(() -> action.accept(sender, context.get(plugin))), plugin);
@@ -283,5 +291,48 @@ public final class KilnCommand {
 
     private static void refreshCommands() {
         MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(Player::refreshCommands);
+    }
+
+    private Command groupCommand() {
+        Command command = admin("group", "kiln.group", (sender, context) -> groupStatus(sender));
+        ArgumentWord player = ArgumentType.Word("player");
+        ArgumentWord group = ArgumentType.Word("group");
+        group.setSuggestionCallback((sender, context, suggestion) -> permissions.groupNames()
+                .forEach(name -> suggestion.addEntry(new SuggestionEntry(name))));
+        Command add = admin("add", "kiln.group", (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln group add [player] [group]</gray>"));
+        add.addSyntax((sender, context) -> changeGroup(sender, context.get(player), context.get(group), true), player, group);
+        Command remove = admin("remove", "kiln.group", (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln group remove [player] [group]</gray>"));
+        remove.addSyntax((sender, context) -> changeGroup(sender, context.get(player), context.get(group), false), player, group);
+        Command reload = admin("reload", "kiln.group", (sender, context) -> {
+            try {
+                permissions.reload();
+                Chat.say(sender, "<green>permissions.yml reloaded.</green>");
+                refreshCommands();
+            } catch (IOException | RuntimeException e) {
+                Chat.error(sender, "permissions.yml could not be read: " + e.getMessage());
+            }
+        });
+        command.addSubcommands(add, remove, reload);
+        return command;
+    }
+
+    private void groupStatus(CommandSender sender) {
+        Chat.say(sender, "<white>Groups</white> <gray>" + String.join(", ", permissions.groupNames()) + "</gray>");
+        Chat.item(sender, "<gold>/kiln group add [player] [group]</gold> <gray>or</gray> <gold>remove</gold>");
+        Chat.item(sender, "<gold>/kiln group reload</gold> <gray>after editing permissions.yml</gray>");
+    }
+
+    private void changeGroup(CommandSender sender, String player, String group, boolean add) {
+        try {
+            boolean changed = add ? permissions.give(player, group) : permissions.take(player, group);
+            Chat.say(sender, changed
+                    ? "<green>" + player + (add ? " is now in " : " is no longer in ") + group + ".</green>"
+                    : "<gray>" + player + (add ? " is already in " : " is not in ") + group + ".</gray>");
+            refreshCommands();
+        } catch (IllegalArgumentException e) {
+            Chat.error(sender, e.getMessage());
+        } catch (IOException e) {
+            Chat.error(sender, "Could not save permissions.yml: " + e.getMessage());
+        }
     }
 }

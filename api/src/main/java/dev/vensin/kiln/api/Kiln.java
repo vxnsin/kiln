@@ -50,4 +50,10 @@ public interface Kiln {
 
     /** True for the console and for players made operator with the op command. */
     boolean isOperator(CommandSender sender);
+
+    /**
+     * Whether the sender holds a permission through one of their groups in permissions.yml.
+     * Operators and the console hold every permission. A trailing {@code .*} grants everything below it.
+     */
+    boolean hasPermission(CommandSender sender, String permission);
 }

@@ -2,6 +2,7 @@ package dev.vensin.kiln.server;
 
 import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.command.Performance;
+import dev.vensin.kiln.server.command.Permissions;
 import dev.vensin.kiln.server.command.Chat;
 import dev.vensin.kiln.server.command.KilnCommand;
 import dev.vensin.kiln.server.command.Maintenance;
@@ -87,6 +88,7 @@ final class Server {
         // The port opens right away: whoever tries during startup gets a clear answer instead of a timeout.
         AtomicBoolean ready = new AtomicBoolean();
         Operators operators = new Operators(Path.of("ops.txt"));
+        Permissions permissions = new Permissions(Path.of("permissions.yml"), operators);
         Maintenance maintenance = new Maintenance(
                 new FileStore(Path.of("data", "kiln")).table("server", Maintenance.State.class), operators);
         events.addListener(AsyncPlayerPreLoginEvent.class, event -> {
@@ -129,12 +131,14 @@ final class Server {
         StartReport.Step loading = report.beginQuietly("Plugins");
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
-        PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), operators, playerData, worlds);
+        PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), operators, playerData, worlds,
+                permissions);
         plugins.loadNew();
         listPlugins(report, loading, plugins);
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
-        KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, plugins, performance,
+        KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, permissions, plugins,
+                performance,
                 maintenance, version);
         if (settings.watchPlugins()) {
             watch(plugins, kiln);

@@ -29,13 +29,16 @@ memory.
   at startup. A plugin that fails shows up in red with the reason; the server keeps going.
 - **Player data.** One line gives a plugin a value per player. It is loaded while the player connects and
   saved when they leave, as readable JSON files.
-- **One command for the server itself.** `/kiln` with `plugins`, `reload`, `load`, `unload`, `players`, `performance`,
+- **One command for the server itself.** `/kiln` with `plugins`, `reload`, `load`, `unload`, `players`, `performance`, `group`,
   `maintenance`, `version`, `update`, `op`, `deop` and `stop`, in the console with tab completion and in
   game for operators.
 - **One settings file.** `kiln.yml` is written on first start, with a comment on every option. It also holds
   your server name and two colors, which every chat message and disconnect screen uses.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
   screen, and the server list says so too.
+- **Permission groups.** `permissions.yml` holds groups with permissions and inheritance, `build.*` covers
+  everything below it, and `/kiln group add <player> <group>` hands them out. Every `/kiln` command has its own
+  permission, so a moderator can get `kiln.maintenance` without becoming operator.
 - **Maintenance.** `/kiln maintenance on` lets in only operators and the players you allow. Everyone else
   gets a clear screen, the server list shows it, and the setting survives a restart.
 - **Behind a proxy.** Put the forwarding secret of your Velocity proxy into `kiln.yml` and players come
@@ -186,6 +189,7 @@ What a plugin gets from Kiln:
 | `kiln.config()` | `plugins/<name>/config.yml`, copied from the jar on first start |
 | `kiln.dataFolder()` | `plugins/<name>/` for the plugin's own files |
 | `kiln.logger()` | A logger whose lines are tagged with the plugin name |
+| `kiln.hasPermission(sender, permission)` | Whether a player holds a permission through their groups |
 | `kiln.isOperator(sender)` | Whether a command sender has admin rights |
 
 ## Folder layout
@@ -194,6 +198,7 @@ What a plugin gets from Kiln:
 kiln-0.1.0.jar
 kiln.yml        settings
 ops.txt         operators, one name per line
+permissions.yml groups and who is in them
 plugins/        plugin jars and their config folders
 worlds/         Minecraft worlds, one folder each
 data/           stored data, one folder per plugin
