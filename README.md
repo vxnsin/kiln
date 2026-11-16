@@ -88,6 +88,31 @@ java -jar kiln-0.1.0.jar
 
 Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kiln op <your name>` into the console.
 
+## One server per round
+
+Everything a round server needs is a setting:
+
+| Option | Environment variable | What it does |
+|---|---|---|
+| `health-port` | `KILN_HEALTH_PORT` | `GET /health` answers 200 once players can join, 503 before, with player counts as JSON |
+| `stop-when-empty` | `KILN_STOP_WHEN_EMPTY` | Shuts down this many seconds after the last player left |
+| `world` | `KILN_WORLD` | The map players land in, from `worlds/` |
+| `velocity-secret` | `KILN_VELOCITY_SECRET` | Accept players only through your Velocity proxy |
+
+Every option in `kiln.yml` works this way: `KILN_` plus the name in capitals with underscores. A variable wins
+over the file, so one image can run any number of differently configured servers.
+
+The repository has a Dockerfile. It builds Kiln, turns the health endpoint on at port 8080 and keeps
+`kiln.yml`, `plugins/`, `worlds/` and `data/` in the volume `/server`:
+
+```bash
+docker build -t kiln .
+```
+
+```bash
+docker run -p 25565:25565 -p 8080:8080 -e KILN_STOP_WHEN_EMPTY=30 -v ./server:/server kiln
+```
+
 ## Write a plugin
 
 A plugin is a jar with one class and one file.

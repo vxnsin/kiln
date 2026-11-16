@@ -5,19 +5,30 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 public record Settings(String host, int port, boolean onlineMode, String velocitySecret, String motd,
                        String maintenanceMotd, int maxPlayers, String world, boolean watchPlugins, String name,
-                       String colorFrom, String colorTo) {
+                       String colorFrom, String colorTo, int healthPort, int stopWhenEmpty) {
 
     private static final String DEFAULTS = "kiln.yml";
 
     /** Writes the commented default file on first start, so there is something to edit. */
     public static Settings load(Path file) throws IOException {
+        return load(file, System::getenv);
+    }
+
+    /**
+     * Every option can be overridden by an environment variable, which is how containers configure a server:
+     * {@code port} becomes {@code KILN_PORT}, {@code colors.from} becomes {@code KILN_COLORS_FROM}.
+     */
+    static Settings load(Path file, Function<String, String> environment) throws IOException {
         if (!Files.exists(file)) {
             try (InputStream defaults = Settings.class.getClassLoader().getResourceAsStream(DEFAULTS)) {
                 Files.copy(defaults, file);
@@ -25,34 +36,62 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
         }
         Map<String, Object> yaml = new Yaml(new SafeConstructor(new LoaderOptions()))
                 .load(Files.readString(file, StandardCharsets.UTF_8));
-        Map<String, Object> root = yaml == null ? Map.of() : yaml;
-        Map<String, Object> colors = root.get("colors") instanceof Map<?, ?> map ? section(map) : Map.of();
+        Values values = new Values(yaml == null ? Map.of() : yaml, environment);
         return new Settings(
-                text(root, "host", "0.0.0.0"),
-                number(root, "port", 25565),
-                !Boolean.FALSE.equals(root.get("online-mode")),
-                text(root, "velocity-secret", ""),
-                text(root, "motd", "<gold>A Kiln server</gold>"),
-                text(root, "maintenance-motd", "<gold>Under maintenance</gold>"),
-                number(root, "max-players", 100),
-                text(root, "world", "flat"),
-                !Boolean.FALSE.equals(root.get("watch-plugins")),
-                text(root, "name", "Kiln"),
-                text(colors, "from", "#ff8700"),
-                text(colors, "to", "#ffd700"));
+                values.text("host", "0.0.0.0"),
+                values.number("port", 25565),
+                values.flag("online-mode", true),
+                values.text("velocity-secret", ""),
+                values.text("motd", "<gold>A Kiln server</gold>"),
+                values.text("maintenance-motd", "<gold>Under maintenance</gold>"),
+                values.number("max-players", 100),
+                values.text("world", "flat"),
+                values.flag("watch-plugins", true),
+                values.text("name", "Kiln"),
+                values.text("colors.from", "#ff8700"),
+                values.text("colors.to", "#ffd700"),
+                values.number("health-port", 0),
+                values.number("stop-when-empty", 0));
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> section(Map<?, ?> map) {
-        return (Map<String, Object>) map;
-    }
+    private record Values(Map<String, Object> yaml, Function<String, String> environment) {
 
-    private static int number(Map<String, Object> map, String key, int fallback) {
-        return map.get(key) instanceof Number number ? number.intValue() : fallback;
-    }
+        String text(String key, String fallback) {
+            Object value = raw(key);
+            return value == null ? fallback : String.valueOf(value);
+        }
 
-    private static String text(Map<String, Object> map, String key, String fallback) {
-        Object value = map.get(key);
-        return value == null ? fallback : String.valueOf(value);
+        int number(String key, int fallback) {
+            Object value = raw(key);
+            if (value instanceof Number number) {
+                return number.intValue();
+            }
+            try {
+                return value == null ? fallback : Integer.parseInt(String.valueOf(value).strip());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(key + " must be a whole number, not " + value);
+            }
+        }
+
+        boolean flag(String key, boolean fallback) {
+            Object value = raw(key);
+            return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value).strip());
+        }
+
+        private Object raw(String key) {
+            String fromEnvironment = environment.apply("KILN_" + key.replace('.', '_').replace('-', '_')
+                    .toUpperCase(Locale.ROOT));
+            if (fromEnvironment != null) {
+                return fromEnvironment;
+            }
+            Object current = yaml;
+            for (String part : key.split(Pattern.quote("."))) {
+                if (!(current instanceof Map<?, ?> map)) {
+                    return null;
+                }
+                current = map.get(part);
+            }
+            return current;
+        }
     }
 }

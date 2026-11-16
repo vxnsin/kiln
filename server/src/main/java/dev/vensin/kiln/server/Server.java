@@ -12,6 +12,8 @@ import dev.vensin.kiln.server.console.StartReport;
 import dev.vensin.kiln.server.console.Terminal;
 import dev.vensin.kiln.server.plugin.PluginManager;
 import dev.vensin.kiln.server.plugin.PluginWatcher;
+import dev.vensin.kiln.server.round.EmptyShutdown;
+import dev.vensin.kiln.server.round.HealthEndpoint;
 import dev.vensin.kiln.server.store.FileStore;
 import dev.vensin.kiln.server.store.PlayerDataManager;
 import dev.vensin.kiln.server.world.WorldFiles;
@@ -20,6 +22,7 @@ import java.io.InputStream;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -94,6 +97,9 @@ final class Server {
             }
         });
         listen(events, settings, ready, maintenance);
+        if (settings.healthPort() > 0) {
+            new HealthEndpoint(ready::get, settings.maxPlayers()).start(settings.healthPort());
+        }
         server.start(settings.host(), settings.port());
         engine.ok((proxied ? "behind Velocity" : settings.onlineMode() ? "online mode"
                 : "offline mode, accounts are not verified") + " "
@@ -137,6 +143,9 @@ final class Server {
             plugins.disableAll();
             playerData.saveAll();
         });
+        if (settings.stopWhenEmpty() > 0) {
+            new EmptyShutdown(Duration.ofSeconds(settings.stopWhenEmpty())).register(events);
+        }
         ready.set(true);
         opening.ok(report.elapsed() + " " + Ansi.DOT + " type kiln for help");
         report.done();

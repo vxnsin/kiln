@@ -35,3 +35,13 @@ world: flat
 # Swap a plugin as soon as its jar in plugins/ changes, load new jars and unload removed ones.
 # Handy while developing; turn it off if you would rather decide yourself with kiln reload.
 watch-plugins: true
+
+# Port of a small HTTP endpoint for container platforms: GET /health answers 200 once the server takes players
+# and 503 before that, with player counts as JSON. 0 turns it off.
+health-port: 0
+
+# Shut down this many seconds after the last player left, for servers that live for one round. 0 keeps it running.
+stop-when-empty: 0
+
+# Every option above can also come from an environment variable: KILN_ plus the name in capitals with
+# underscores, for example KILN_PORT=25566 or KILN_COLORS_FROM=#ff0000. The variable wins over this file.
