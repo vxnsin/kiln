@@ -26,7 +26,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             server/build/libs/kiln-*.jar \
-            api/build/libs/api-*.jar \
+            api/build/libs/kiln-api-*.jar \
             --title "Kiln ${GITHUB_REF_NAME#v}" --notes-file RELEASE_NOTES.md
       - name: Push the container image
         run: |
