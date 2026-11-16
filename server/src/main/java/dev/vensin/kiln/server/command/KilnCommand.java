@@ -19,6 +19,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.command.CommandSender;
@@ -73,6 +74,7 @@ public final class KilnCommand {
         HELP.put("kick [player] [reason]", "send a player away with a reason");
         HELP.put("ban [player] [time] [reason]", "keep a player out, for good or for 30m, 12h, 7d, 2w");
         HELP.put("unban [player]", "let them back in; bans lists who is out");
+        HELP.put("mute [player] [time] [reason]", "keep a player out of chat; unmute lets them back");
         HELP.put("say [message]", "announce something to everyone");
         HELP.put("stop [seconds] [reason]", "shut down, now or after a visible countdown");
     }
@@ -86,6 +88,8 @@ public final class KilnCommand {
     private final NetworkService network;
     private final Bans bans;
     private ConfigReload configReload = () -> { };
+    private Bans mutes;
+    private Consumer<String> muteChanged = name -> { };
     private final Countdown countdown = new Countdown();
     private static final Duration DAILY_WARNING = Duration.ofMinutes(5);
 
@@ -146,6 +150,8 @@ public final class KilnCommand {
                 kiln.kickCommand(),
                 kiln.banCommand(),
                 kiln.unbanCommand(),
+                kiln.muteCommand(),
+                kiln.unmuteCommand(),
                 kiln.admin("bans", "kiln.ban", (sender, context) -> kiln.listBans(sender)),
                 kiln.sayCommand(),
                 kiln.stopCommand());
@@ -738,5 +744,53 @@ public final class KilnCommand {
     private static void button(List<DialogActionButton> buttons, String label, String command) {
         buttons.add(new DialogActionButton(Component.text(label), Component.text("/" + command),
                 DialogActionButton.DEFAULT_WIDTH, new DialogAction.RunCommand("/" + command)));
+    }
+
+    public void useMutes(Bans store, Consumer<String> changed) {
+        this.mutes = store;
+        this.muteChanged = changed;
+    }
+
+    private Command muteCommand() {
+        ArgumentWord player = ArgumentType.Word("player");
+        player.setSuggestionCallback((sender, context, suggestion) -> MinecraftServer.getConnectionManager()
+                .getOnlinePlayers().forEach(online -> suggestion.addEntry(new SuggestionEntry(online.getUsername()))));
+        ArgumentStringArray rest = ArgumentType.StringArray("duration and reason");
+        Command command = admin("mute", "kiln.mute",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln mute [player] [30m|12h|7d|2w] [reason]</gray>"));
+        CommandExecutor mute = (sender, context) -> {
+            String name = context.get(player);
+            List<String> words = context.has(rest) ? new ArrayList<>(List.of(context.get(rest))) : new ArrayList<>();
+            Duration length = words.isEmpty() ? null : Bans.parse(words.getFirst());
+            if (length != null) {
+                words.removeFirst();
+            }
+            String by = sender instanceof Player self ? self.getUsername() : "console";
+            Bans.Ban done = mutes.ban(name, length, String.join(" ", words), by);
+            muteChanged.accept(name);
+            Player online = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(name);
+            if (online != null) {
+                Chat.say(online, "<red>You were muted " + Bans.describe(done) + ".</red>");
+            }
+            Chat.say(sender, "<green>" + name + " is muted " + Bans.describe(done) + ".</green>");
+        };
+        command.addSyntax(mute, player);
+        command.addSyntax(mute, player, rest);
+        return command;
+    }
+
+    private Command unmuteCommand() {
+        ArgumentWord player = ArgumentType.Word("player");
+        player.setSuggestionCallback((sender, context, suggestion) -> mutes.all()
+                .forEach(entry -> suggestion.addEntry(new SuggestionEntry(entry.name()))));
+        Command command = admin("unmute", "kiln.mute",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln unmute [player]</gray>"));
+        command.addSyntax((sender, context) -> {
+            String name = context.get(player);
+            boolean was = mutes.unban(name);
+            muteChanged.accept(name);
+            Chat.say(sender, was ? "<green>" + name + " may chat again.</green>" : "<gray>" + name + " was not muted.</gray>");
+        }, player);
+        return command;
     }
 }

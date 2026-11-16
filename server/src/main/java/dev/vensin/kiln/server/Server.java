@@ -151,7 +151,8 @@ final class Server {
         });
         AtomicReference<Settings> live = new AtomicReference<>(settings);
         listen(events, live, ready, maintenance);
-        ChatStyle chatStyle = new ChatStyle(ChatStyle.from(settings), permissions);
+        Bans mutes = new Bans(storage.forPlugin("kiln").table("mutes", Bans.Ban.class));
+        ChatStyle chatStyle = new ChatStyle(ChatStyle.from(settings), permissions, mutes);
         chatStyle.register(events);
         if (settings.webPort() > 0) {
             new WebEndpoint(ready::get, new WebEndpoint.Identity(settings.name(), settings.serverId(), version,
@@ -220,6 +221,7 @@ final class Server {
         StartReport.Step opening = report.begin("Ready", "letting players in");
         KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, permissions, plugins,
                 performance, maintenance, version, pack, network, worlds, bans);
+        kiln.useMutes(mutes, chatStyle::forget);
         kiln.onConfigReload(() -> {
             Settings fresh = Settings.load(Path.of("kiln.yml"));
             Chat.brand(fresh.name(), fresh.colorFrom(), fresh.colorTo());

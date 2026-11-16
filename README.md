@@ -47,8 +47,8 @@ memory.
   updated every two seconds.
 - **Permission groups.** Groups with inheritance and wildcards in `permissions.yml`. Every `/kiln` command has
   its own permission, so a moderator can run maintenance without becoming operator.
-- **Bans with a reason and an end.** `/kiln ban griefer 7d broke the spawn` keeps someone out with a clean
-  screen that says why and until when. With Redis, a ban counts on every server.
+- **Bans and mutes with a reason and an end.** `/kiln ban griefer 7d broke the spawn` keeps someone out with a
+  clean screen that says why and until when. With Redis, a ban counts on every server.
 - **Maintenance and whitelist.** `/kiln maintenance on` (or `/kiln whitelist on`) lets in only operators and the
   players you allow. The server list says so, and the setting survives a restart.
 - **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message, every disconnect
@@ -141,6 +141,7 @@ Everything about folders, containers, networks of servers and monitoring is in [
 | `/kiln world [name]`, `world home` | Walk through a map from `worlds/` in a throwaway copy |
 | `/kiln kick <player> [reason]` | Send a player away with a clean screen |
 | `/kiln ban <player> [time] [reason]`, `unban`, `bans` | Keep a player out for 30m, 12h, 7d, 2w or for good; shared through Redis |
+| `/kiln mute <player> [time] [reason]`, `unmute` | Keep a player out of chat for a while or for good |
 | `/kiln say <message>` | Announce something to everyone |
 | `/kiln maintenance on`, `off`, `allow <name>`, `deny <name>` | Let only operators and allowed players in |
 | `/kiln group add <player> <group>`, `remove`, `reload` | Permission groups from `permissions.yml` |
