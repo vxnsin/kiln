@@ -1,5 +1,6 @@
 package dev.vensin.kiln.server.command;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,9 +22,13 @@ class PermissionsTest {
                     permissions: [lobby.join]
                   builder:
                     inherits: [default]
+                    prefix: "<green>Builder</green> "
+                    weight: 5
                     permissions: [build.*]
                   admin:
                     inherits: [builder, admin]
+                    prefix: "<red>Admin</red> "
+                    weight: 20
                     permissions: [kiln.reload]
                 players:
                   Alex: [admin]
@@ -60,5 +65,15 @@ class PermissionsTest {
         assertFalse(Permissions.grants(admin, "kiln.stop"));
         assertFalse(Permissions.grants(admin, "buildings"));
         assertTrue(Permissions.grants(Set.of("*"), "anything.at.all"));
+    }
+
+    @Test
+    void theHeaviestGroupWithAPrefixWins() throws Exception {
+        Permissions permissions = permissions();
+        permissions.give("Alex", "builder");
+        assertEquals("<red>Admin</red> ", permissions.prefixOf("alex"));
+        assertEquals("", permissions.prefixOf("someone"));
+        permissions.reload();
+        assertEquals("<red>Admin</red> ", permissions.prefixOf("alex"), "prefix and weight survive saving");
     }
 }

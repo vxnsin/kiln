@@ -46,8 +46,9 @@ memory.
   has its own permission, so a moderator can run maintenance without becoming operator.
 - **Maintenance.** `/kiln maintenance on` lets in only operators and the players you allow. The server list
   says so, and the setting survives a restart.
-- **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message and every
-  disconnect screen.
+- **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message, every
+  disconnect screen, and the tab list. Chat lines, join and leave messages show group prefixes from
+  `permissions.yml` and can each be restyled or switched off.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
   screen instead of a timeout.
 - **A resource pack without a web host.** Drop `pack.zip` next to the server and it is sent to everyone who

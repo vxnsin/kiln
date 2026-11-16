@@ -29,6 +29,19 @@ max-players: 100
 # Language for plugin texts when a player's client language has no translation (two letters, like en or de).
 language: en
 
+# How chat, joining and leaving look (MiniMessage). <name> is the player, <message> what they wrote and
+# <prefix> the prefix of their group in permissions.yml. Set a line to "" to switch it off.
+chat:
+  format: "<prefix><white><name></white> <dark_gray>»</dark_gray> <gray><message></gray>"
+  join: "<dark_gray>[<green>+</green>]</dark_gray> <gray><name></gray>"
+  leave: "<dark_gray>[<red>-</red>]</dark_gray> <gray><name></gray>"
+
+# Lines above and below the player list (Tab). <server> is the name above, <server-id> this server in the
+# network, <online> and <max> the player counts. Empty: Minecraft's plain list.
+tab-list:
+  header: "<newline><gradient:#ff8700:#ffd700><bold><server></bold></gradient><newline>"
+  footer: "<newline><gray><online> of <max> online</gray><newline>"
+
 # The world players land in when no plugin gives them one.
 #   flat   an endless flat grass world, enough to stand on and test
 #   none   plugins must set a spawning instance themselves

@@ -17,9 +17,13 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                        String maintenanceMotd, int maxPlayers, String world, boolean watchPlugins, String name,
                        String colorFrom, String colorTo, int webPort, int stopWhenEmpty, String language,
                        String packFile, String packHost, int packPort, String packUrl, boolean packRequired,
-                       String packPrompt, String storage, String redisUri, String mongoUri, String serverId) {
+                       String packPrompt, String storage, String redisUri, String mongoUri, String serverId,
+                       String chatFormat, String joinMessage, String leaveMessage, String tabHeader, String tabFooter) {
 
     private static final String DEFAULTS = "kiln.yml";
+    private static final String DEFAULT_CHAT = "<prefix><white><name></white> <dark_gray>»</dark_gray> <gray><message></gray>";
+    private static final String DEFAULT_JOIN = "<dark_gray>[<green>+</green>]</dark_gray> <gray><name></gray>";
+    private static final String DEFAULT_LEAVE = "<dark_gray>[<red>-</red>]</dark_gray> <gray><name></gray>";
 
     /** Writes the commented default file on first start, so there is something to edit. */
     public static Settings load(Path file) throws IOException {
@@ -64,7 +68,12 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                 values.text("storage.type", "files").toLowerCase(Locale.ROOT),
                 values.text("storage.redis", "redis://localhost:6379"),
                 values.text("storage.mongodb", "mongodb://localhost:27017/kiln"),
-                values.text("server-id", "").isBlank() ? machineName(environment) : values.text("server-id", ""));
+                values.text("server-id", "").isBlank() ? machineName(environment) : values.text("server-id", ""),
+                values.text("chat.format", DEFAULT_CHAT),
+                values.text("chat.join", DEFAULT_JOIN),
+                values.text("chat.leave", DEFAULT_LEAVE),
+                values.text("tab-list.header", ""),
+                values.text("tab-list.footer", ""));
     }
 
 

@@ -3,6 +3,7 @@ package dev.vensin.kiln.server;
 import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.command.Performance;
 import dev.vensin.kiln.server.command.Permissions;
+import dev.vensin.kiln.server.chat.ChatStyle;
 import dev.vensin.kiln.server.command.Chat;
 import dev.vensin.kiln.server.command.KilnCommand;
 import dev.vensin.kiln.server.command.Maintenance;
@@ -117,6 +118,9 @@ final class Server {
             }
         });
         listen(events, settings, ready, maintenance);
+        new ChatStyle(new ChatStyle.Templates(settings.chatFormat(), settings.joinMessage(), settings.leaveMessage(),
+                settings.tabHeader(), settings.tabFooter(), settings.name(), settings.serverId(), settings.maxPlayers()),
+                permissions).register(events);
         if (settings.webPort() > 0) {
             new WebEndpoint(ready::get, new WebEndpoint.Identity(settings.name(), settings.serverId(), version,
                     settings.maxPlayers()), performance).start(settings.webPort());

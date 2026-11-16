@@ -29,6 +29,7 @@ public final class Permissions {
             # Groups and their permissions. A group can inherit the permissions of others.
             # A trailing .* grants everything below it, for example build.* grants build.place and build.break.
             # Every player is in "default"; list players under players to give them more groups.
+            # prefix is shown in front of the name in chat; with several groups the one with the highest weight wins.
             # Operators (ops.txt) hold every permission anyway.
             """;
     private static final String STARTER = """
@@ -37,11 +38,13 @@ public final class Permissions {
                 permissions: []
               moderator:
                 inherits: [default]
-                permissions: [kiln.players, kiln.maintenance]
+                prefix: "<dark_aqua>Mod</dark_aqua> "
+                weight: 10
+                permissions: [kiln.players, kiln.maintenance, kiln.kick]
             players: {}
             """;
 
-    private record Group(Set<String> permissions, List<String> inherits) {}
+    private record Group(Set<String> permissions, List<String> inherits, String prefix, int weight) {}
 
     private final Path file;
     private final Operators operators;
@@ -66,10 +69,11 @@ public final class Permissions {
             section.forEach((name, value) -> {
                 Map<String, Object> group = value instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
                 readGroups.put(String.valueOf(name), new Group(new TreeSet<>(strings(group.get("permissions"))),
-                        strings(group.get("inherits"))));
+                        strings(group.get("inherits")), group.get("prefix") == null ? "" : String.valueOf(group.get("prefix")),
+                        group.get("weight") instanceof Number weight ? weight.intValue() : 0));
             });
         }
-        readGroups.putIfAbsent(DEFAULT_GROUP, new Group(new TreeSet<>(), List.of()));
+        readGroups.putIfAbsent(DEFAULT_GROUP, new Group(new TreeSet<>(), List.of(), "", 0));
         Map<String, Set<String>> readPlayers = new TreeMap<>();
         if (root.get("players") instanceof Map<?, ?> section) {
             section.forEach((name, value) -> readPlayers.put(String.valueOf(name).toLowerCase(Locale.ROOT),
@@ -117,6 +121,12 @@ public final class Permissions {
         return result;
     }
 
+
+    /** The chat prefix of the player's heaviest group that has one, or an empty string. */
+    public String prefixOf(String username) {
+        return groupsOf(username).stream().map(groups::get).filter(group -> group != null && !group.prefix().isEmpty())
+                .max((a, b) -> Integer.compare(a.weight(), b.weight())).map(Group::prefix).orElse("");
+    }
     public synchronized boolean give(String username, String group) throws IOException {
         if (!groups.containsKey(group)) {
             throw new IllegalArgumentException("there is no group " + group + " in permissions.yml");
@@ -162,6 +172,12 @@ public final class Permissions {
             Map<String, Object> entry = new LinkedHashMap<>();
             if (!group.inherits().isEmpty()) {
                 entry.put("inherits", group.inherits());
+            }
+            if (!group.prefix().isEmpty()) {
+                entry.put("prefix", group.prefix());
+            }
+            if (group.weight() != 0) {
+                entry.put("weight", group.weight());
             }
             entry.put("permissions", List.copyOf(group.permissions()));
             groupSection.put(name, entry);
