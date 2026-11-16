@@ -22,6 +22,7 @@ Java 25, and connect with Minecraft 26.2.
 - Chat, join and leave messages and the tab list styled from `kiln.yml`, with your server name and colors
 - A live dashboard on the web port, plus `/health`, `/stats` and `/metrics` for Prometheus
 - A resource pack served by the server itself, and the kiln pixel icon in the server list
+- Kiln's own screens in English or German, log files with daily rotation, autosave and a daily restart
 
 ### When there are many
 
