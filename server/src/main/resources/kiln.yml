@@ -55,6 +55,10 @@ gamemode: adventure
 # Bring players who fall out of the world back to the spawn instead of letting them fall forever.
 void-rescue: true
 
+# Save the data of everyone online this often, in seconds, so a crash loses at most this much. 0 turns it off;
+# data is still saved when players leave and when the server stops.
+autosave: 300
+
 # Swap a plugin as soon as its jar in plugins/ changes, load new jars and unload removed ones.
 # Handy while developing; turn it off if you would rather decide yourself with kiln reload.
 watch-plugins: true

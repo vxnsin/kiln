@@ -20,12 +20,17 @@ public final class ExamplePlugin implements Plugin {
         int count;
     }
 
+    /** config.yml read into a class; the file says announce-first-visit, the field is announceFirstVisit. */
+    public static final class Settings {
+        boolean announceFirstVisit = true;
+    }
+
     /** One row of the leaderboard, keyed by player name. */
     public record Score(String name, int visits) {}
 
     @Override
     public void enable(Kiln kiln) {
-        boolean announce = !Boolean.FALSE.equals(kiln.config().get("announce-first-visit"));
+        boolean announce = kiln.config(Settings.class).announceFirstVisit;
         PlayerData<Visits> visits = kiln.playerData("visits", Visits.class, Visits::new);
         Table<Score> scores = kiln.store().table("scores", Score.class);
 

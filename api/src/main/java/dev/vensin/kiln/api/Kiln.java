@@ -44,6 +44,12 @@ public interface Kiln {
     /** plugins/&lt;name&gt;/config.yml; on first start it is copied from config.yml inside the plugin jar. */
     Map<String, Object> config();
 
+    /**
+     * The same file read into a class: {@code announce-first-visit} fills the field {@code announceFirstVisit}.
+     * Fields missing from the file keep the values the class gives them, so a class with defaults works best.
+     */
+    <T> T config(Class<T> type);
+
     /** Storage that belongs to this plugin only. Where it lives is the server owner's choice in kiln.yml. */
     Store store();
 

@@ -116,6 +116,19 @@ virtual thread.
 int rounds = ((Number) kiln.config().getOrDefault("rounds", 3)).intValue();
 ```
 
+Or read it straight into a class. Dashed keys fill camel-case fields, and fields the file leaves out keep their
+defaults:
+
+```java
+public static final class Settings {
+    int rounds = 3;
+    String arena = "arena";
+    boolean announceWinner = true;   // announce-winner: true
+}
+
+Settings settings = kiln.config(Settings.class);
+```
+
 ## Texts in every language
 
 Put `src/main/resources/lang/en.yml`, `lang/de.yml` and so on into the jar:

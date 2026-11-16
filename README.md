@@ -32,7 +32,8 @@ memory.
   slowest first, next to tick time, memory, CPU and the world.
 - **A profiler built in.** `/kiln profile 30` watches the server threads for thirty seconds and names the
   methods that cost the most time, and the plugins they belong to.
-- **Player data in one line.** A value per player, loaded while they connect and saved when they leave.
+- **Player data in one line.** A value per player, loaded while they connect, saved when they leave and every
+  five minutes in between.
 - **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and each
   player gets the file that matches their Minecraft language.
 
@@ -269,7 +270,7 @@ What a plugin gets from Kiln:
 | `kiln.worlds().open(name)` | A fresh copy of a world from `worlds/`, closed again when the plugin goes |
 | `kiln.tasks().every(interval, action)` | Timers that stop when the plugin is unloaded or swapped |
 | `kiln.messages().send(player, key, ...)` | Texts from `lang/<language>.yml`, in the language of the player's client |
-| `kiln.config()` | `plugins/<name>/config.yml`, copied from the jar on first start |
+| `kiln.config()`, `kiln.config(MyConfig.class)` | `plugins/<name>/config.yml` as a map or read into a class, copied from the jar on first start |
 | `kiln.dataFolder()` | `plugins/<name>/` for the plugin's own files |
 | `kiln.logger()` | A logger whose lines are tagged with the plugin name |
 | `kiln.hasPermission(sender, permission)` | Whether a player holds a permission through their groups |

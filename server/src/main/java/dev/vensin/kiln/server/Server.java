@@ -238,6 +238,19 @@ final class Server {
                 }
             }
         });
+        if (settings.autosave() > 0) {
+            // Saving talks to storage, which can be slow, so it runs on its own thread instead of the tick.
+            Thread.ofPlatform().daemon().name("autosave").start(() -> {
+                while (true) {
+                    try {
+                        Thread.sleep(Duration.ofSeconds(settings.autosave()));
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                    playerData.saveAll();
+                }
+            });
+        }
         if (settings.stopWhenEmpty() > 0) {
             new EmptyShutdown(Duration.ofSeconds(settings.stopWhenEmpty())).register(events);
         }

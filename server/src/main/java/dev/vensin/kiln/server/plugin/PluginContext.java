@@ -1,5 +1,8 @@
 package dev.vensin.kiln.server.plugin;
 
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import dev.vensin.kiln.api.Events;
 import dev.vensin.kiln.api.Kiln;
 import dev.vensin.kiln.api.Messages;
@@ -39,6 +42,8 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 final class PluginContext implements Kiln {
 
     private static final String CONFIG = "config.yml";
+    private static final Gson CONFIG_JSON = new GsonBuilder()
+            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_DASHES).create();
 
     private final PluginInfo info;
     private final PluginClassLoader loader;
@@ -174,6 +179,11 @@ final class PluginContext implements Kiln {
         }
     }
 
+
+    @Override
+    public <T> T config(Class<T> type) {
+        return CONFIG_JSON.fromJson(CONFIG_JSON.toJsonTree(config()), type);
+    }
     @Override
     public Store store() {
         return store;
