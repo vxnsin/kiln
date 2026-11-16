@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.time.Duration;
@@ -40,6 +41,7 @@ public final class KilnCommand {
         HELP.put("reload [plugin]", "swap a plugin for the jar now in the folder");
         HELP.put("load", "load jars that were added to the folder");
         HELP.put("unload [plugin]", "take a plugin out");
+        HELP.put("profile [seconds]", "which methods and plugins the server threads spend their time in");
         HELP.put("players", "who is online");
         HELP.put("servers", "every server in the network and its players");
         HELP.put("find [player]", "which server a player is on");
@@ -110,6 +112,7 @@ public final class KilnCommand {
                 kiln.admin("load", "kiln.load", (sender, context) -> MinecraftServer.getSchedulerManager()
                         .scheduleNextTick(() -> kiln.load(sender))),
                 kiln.withPlugin("unload", (sender, name) -> kiln.unload(sender, name, true)),
+                kiln.profileCommand(),
                 kiln.admin("performance", "kiln.performance", (sender, context) -> performance.report(sender), "perf"),
                 kiln.admin("version", "kiln.version", (sender, context) -> kiln.version(sender)),
                 kiln.admin("update", "kiln.update", (sender, context) -> Thread.ofVirtual().start(() -> kiln.update(sender))),
@@ -595,6 +598,23 @@ public final class KilnCommand {
                 Chat.error(sender, "kiln.yml could not be read, nothing changed: " + e.getMessage());
             }
         }));
+        return command;
+    }
+
+    private Command profileCommand() {
+        ArgumentInteger seconds = ArgumentType.Integer("seconds");
+        seconds.between(1, 300);
+        Profiler profiler = new Profiler(() -> {
+            Map<String, String> packages = new HashMap<>();
+            for (PluginManager.Loaded loaded : plugins.loaded()) {
+                String main = loaded.info().main();
+                int dot = main.lastIndexOf('.');
+                packages.put(dot < 0 ? main : main.substring(0, dot + 1), loaded.info().name());
+            }
+            return packages;
+        });
+        Command command = admin("profile", "kiln.profile", (sender, context) -> profiler.run(sender, 10));
+        command.addSyntax((sender, context) -> profiler.run(sender, context.get(seconds)), seconds);
         return command;
     }
 }

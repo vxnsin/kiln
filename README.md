@@ -30,6 +30,8 @@ memory.
   straight into the running server. Save, build, and the change is live.
 - **Which plugin is slow.** `/kiln performance` and the dashboard show the time each plugin spends per tick,
   slowest first, next to tick time, memory, CPU and the world.
+- **A profiler built in.** `/kiln profile 30` watches the server threads for thirty seconds and names the
+  methods that cost the most time, and the plugins they belong to.
 - **Player data in one line.** A value per player, loaded while they connect and saved when they leave.
 - **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and each
   player gets the file that matches their Minecraft language.
@@ -125,6 +127,7 @@ Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kil
 | `/kiln plugins` | Loaded plugins and their versions |
 | `/kiln reload <plugin>`, `load`, `unload <plugin>` | Swap, add or remove plugins on the running server |
 | `/kiln performance` (`perf`) | Ticks, memory, CPU, the world and each plugin's time per tick |
+| `/kiln profile [seconds]` | Watch the server threads and list the busiest methods and plugins |
 | `/kiln players` | Who is online |
 | `/kiln servers`, `find <player>` | Every server in the network and who is where |
 | `/kiln send <player> <server>` | Move a player to another server in the network, no proxy needed |
