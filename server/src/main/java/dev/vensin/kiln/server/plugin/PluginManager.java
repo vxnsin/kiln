@@ -25,16 +25,14 @@ public final class PluginManager {
     private static final String COPIES = ".loaded";
 
     private final Path directory;
-    private final Path dataRoot;
     private final PluginServices services;
     private final Map<String, Loaded> loaded = new LinkedHashMap<>();
     private final List<Failure> failures = new ArrayList<>();
     private int copies;
     private boolean started;
 
-    public PluginManager(Path directory, Path dataRoot, PluginServices services) {
+    public PluginManager(Path directory, PluginServices services) {
         this.directory = directory;
-        this.dataRoot = dataRoot;
         this.services = services;
     }
 
@@ -164,8 +162,7 @@ public final class PluginManager {
                 throw new IllegalArgumentException(info.main() + " does not implement Plugin");
             }
             Plugin plugin = (Plugin) main.getDeclaredConstructor().newInstance();
-            context = new PluginContext(info, loader, directory.resolve(info.name()), dataRoot.resolve(info.name()),
-                    services);
+            context = new PluginContext(info, loader, directory.resolve(info.name()), services);
             plugin.enable(context);
             Loaded result = new Loaded(info, plugin, loader, context, jar, copy);
             loaded.put(info.name(), result);

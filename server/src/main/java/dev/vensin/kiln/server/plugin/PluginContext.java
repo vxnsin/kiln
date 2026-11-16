@@ -10,7 +10,6 @@ import dev.vensin.kiln.api.store.PlayerData;
 import dev.vensin.kiln.api.store.Store;
 import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.command.Permissions;
-import dev.vensin.kiln.server.store.FileStore;
 import dev.vensin.kiln.server.store.PlayerDataManager;
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,11 +55,11 @@ final class PluginContext implements Kiln {
     private final PluginTasks tasks;
     private final PluginMessages messages;
 
-    PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, Path data, PluginServices services) {
+    PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, PluginServices services) {
         this.info = info;
         this.loader = loader;
         this.folder = folder;
-        this.store = new FileStore(data);
+        this.store = services.storage().forPlugin(info.name());
         this.operators = services.operators();
         this.permissions = services.permissions();
         this.playerData = services.playerData();

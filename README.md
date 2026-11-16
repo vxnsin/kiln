@@ -29,6 +29,8 @@ memory.
   at startup. A plugin that fails shows up in red with the reason; the server keeps going.
 - **Player data.** One line gives a plugin a value per player. It is loaded while the player connects and
   saved when they leave, as readable JSON files.
+- **Storage you can switch.** Player data and plugin tables go to JSON files by default. One line in
+  `kiln.yml` moves them to Redis, Valkey, Dragonfly or MongoDB, and no plugin has to change for it.
 - **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and Kiln
   picks the file that matches each player's Minecraft language. Server owners can edit the texts in
   `plugins/<name>/lang/` without touching the jar.
@@ -128,6 +130,7 @@ Everything a round server needs is a setting:
 | `stop-when-empty` | `KILN_STOP_WHEN_EMPTY` | Shuts down this many seconds after the last player left |
 | `world` | `KILN_WORLD` | The map players land in, from `worlds/` |
 | `velocity-secret` | `KILN_VELOCITY_SECRET` | Accept players only through your Velocity proxy |
+| `storage.type`, `storage.redis` | `KILN_STORAGE_TYPE`, `KILN_STORAGE_REDIS` | Keep data in Redis or Dragonfly, so every round server sees the same players |
 
 Every option in `kiln.yml` works this way: `KILN_` plus the name in capitals with underscores. A variable wins
 over the file, so one image can run any number of differently configured servers.

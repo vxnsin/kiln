@@ -17,7 +17,7 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                        String maintenanceMotd, int maxPlayers, String world, boolean watchPlugins, String name,
                        String colorFrom, String colorTo, int healthPort, int stopWhenEmpty, String language,
                        String packFile, String packHost, int packPort, String packUrl, boolean packRequired,
-                       String packPrompt) {
+                       String packPrompt, String storage, String redisUri, String mongoUri) {
 
     private static final String DEFAULTS = "kiln.yml";
 
@@ -60,7 +60,10 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                 values.number("resource-pack.port", 8164),
                 values.text("resource-pack.public-url", ""),
                 values.flag("resource-pack.required", false),
-                values.text("resource-pack.prompt", ""));
+                values.text("resource-pack.prompt", ""),
+                values.text("storage.type", "files").toLowerCase(Locale.ROOT),
+                values.text("storage.redis", "redis://localhost:6379"),
+                values.text("storage.mongodb", "mongodb://localhost:27017/kiln"));
     }
 
     private record Values(Map<String, Object> yaml, Function<String, String> environment) {

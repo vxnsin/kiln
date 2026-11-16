@@ -17,12 +17,16 @@ import dev.vensin.kiln.server.plugin.PluginServices;
 import dev.vensin.kiln.server.plugin.PluginWatcher;
 import dev.vensin.kiln.server.round.EmptyShutdown;
 import dev.vensin.kiln.server.round.HealthEndpoint;
-import dev.vensin.kiln.server.store.FileStore;
+import dev.vensin.kiln.server.store.FileDriver;
+import dev.vensin.kiln.server.store.MongoDriver;
+import dev.vensin.kiln.server.store.RedisDriver;
+import dev.vensin.kiln.server.store.StorageDriver;
 import dev.vensin.kiln.server.store.PlayerDataManager;
 import dev.vensin.kiln.server.world.WorldFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -83,6 +87,15 @@ final class Server {
                 : settings.onlineMode() ? new Auth.Online() : new Auth.Offline();
         MinecraftServer server = MinecraftServer.init(auth);
         MinecraftServer.setBrandName("Kiln");
+        StorageDriver storage;
+        try {
+            storage = storage(settings);
+        } catch (IOException | RuntimeException e) {
+            engine.fail(settings.storage() + " storage is not reachable: " + e.getMessage());
+            report.done();
+            System.exit(1);
+            return;
+        }
         GlobalEventHandler events = MinecraftServer.getGlobalEventHandler();
         Performance performance = new Performance();
         performance.register(events);
@@ -92,7 +105,7 @@ final class Server {
         Operators operators = new Operators(Path.of("ops.txt"));
         Permissions permissions = new Permissions(Path.of("permissions.yml"), operators);
         Maintenance maintenance = new Maintenance(
-                new FileStore(Path.of("data", "kiln")).table("server", Maintenance.State.class), operators);
+                storage.forPlugin("kiln").table("server", Maintenance.State.class), operators);
         events.addListener(AsyncPlayerPreLoginEvent.class, event -> {
             if (!ready.get()) {
                 event.getConnection().kick(Chat.screen("The server is still starting", "Give it a few seconds and join again."));
@@ -108,6 +121,8 @@ final class Server {
         engine.ok((proxied ? "behind Velocity" : settings.onlineMode() ? "online mode"
                 : "offline mode, accounts are not verified") + " "
                 + Ansi.DOT + " port " + settings.port());
+
+        report.beginQuietly("Storage").ok(storage.describe());
 
         StartReport.Step world = report.begin("World", "preparing the default world");
         WorldFiles worlds = new WorldFiles(Path.of("worlds"));
@@ -152,8 +167,9 @@ final class Server {
         StartReport.Step loading = report.beginQuietly("Plugins");
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
-        PluginServices services = new PluginServices(operators, permissions, playerData, worlds, settings.language());
-        PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), services);
+        PluginServices services = new PluginServices(operators, permissions, playerData, worlds, settings.language(),
+                storage);
+        PluginManager plugins = new PluginManager(Path.of("plugins"), services);
         performance.plugins(services.timings(), () -> plugins.loaded().stream().map(loaded -> loaded.info().name()).toList());
         plugins.loadNew();
         listPlugins(report, loading, plugins);
@@ -167,6 +183,7 @@ final class Server {
         MinecraftServer.getSchedulerManager().buildShutdownTask(() -> {
             plugins.disableAll();
             playerData.saveAll();
+            storage.close();
         });
         if (settings.stopWhenEmpty() > 0) {
             new EmptyShutdown(Duration.ofSeconds(settings.stopWhenEmpty())).register(events);
@@ -275,6 +292,15 @@ final class Server {
                 .build()));
     }
 
+
+    private static StorageDriver storage(Settings settings) throws IOException {
+        return switch (settings.storage()) {
+            case "files" -> new FileDriver(Path.of("data"));
+            case "redis" -> new RedisDriver(URI.create(settings.redisUri()));
+            case "mongodb" -> new MongoDriver(settings.mongoUri());
+            default -> throw new IllegalArgumentException("storage.type must be files, redis or mongodb");
+        };
+    }
     private static boolean portFree(int port) {
         try (ServerSocket socket = new ServerSocket(port)) {
             return true;

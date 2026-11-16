@@ -3,6 +3,7 @@
   <appender name="console" class="dev.vensin.kiln.server.console.ConsoleAppender"/>
   <logger name="net.minestom" level="WARN"/>
   <logger name="org.jline" level="WARN"/>
+  <logger name="org.mongodb" level="WARN"/>
   <root level="INFO">
     <appender-ref ref="console"/>
   </root>

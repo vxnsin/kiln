@@ -39,6 +39,15 @@ world: flat
 # Handy while developing; turn it off if you would rather decide yourself with kiln reload.
 watch-plugins: true
 
+# Where plugin data and player data live.
+#   files    JSON files in data/, nothing to set up
+#   redis    Redis, Valkey or Dragonfly; share data between servers
+#   mongodb  MongoDB, one collection per plugin table
+storage:
+  type: files
+  redis: "redis://localhost:6379"
+  mongodb: "mongodb://localhost:27017/kiln"
+
 # A resource pack for every player. Drop pack.zip next to the server and it is sent on join; no file, no pack.
 resource-pack:
   file: pack.zip

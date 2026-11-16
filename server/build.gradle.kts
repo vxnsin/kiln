@@ -7,6 +7,7 @@ dependencies {
     implementation(libs.snakeyaml)
     implementation(libs.logback)
     implementation(libs.jline)
+    implementation(libs.mongodb)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
