@@ -1,3 +1,5 @@
 greeting: "<gold>Willkommen zurück, <name>!</gold> <gray>Das ist Besuch Nummer <visits>.</gray>"
 first-visit: "<gold><name></gold> <gray>ist zum ersten Mal hier. Sag hallo!</gray>"
 visits: "<gray>Du warst schon</gray> <white><visits></white> <gray>Mal hier.</gray>"
+top: "<gold>Die meisten Besuche</gold>"
+top-line: "<white><name></white> <gray><visits></gray>"
