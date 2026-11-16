@@ -57,7 +57,8 @@ docker build -t kiln .
 docker run -p 25565:25565 -p 8080:8080 -v ./server:/server kiln
 ```
 
-Each release also publishes an image as `ghcr.io/vxnsin/kiln`. Point the health check of your platform at
+The image checks its own health with `java -jar kiln.jar health`, so `docker ps` shows when a server is ready.
+Each release also publishes an image as `ghcr.io/vxnsin/kiln`. Point the health check of other platforms at
 `http://<container>:8080/health`: it answers 200 once players can join and 503 while Kiln is starting.
 
 ## Many servers
