@@ -11,7 +11,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 public record Settings(String host, int port, boolean onlineMode, String velocitySecret, String motd,
-                       String maintenanceMotd, int maxPlayers, String world) {
+                       String maintenanceMotd, int maxPlayers, String world, boolean watchPlugins) {
 
     private static final String DEFAULTS = "kiln.yml";
 
@@ -33,7 +33,8 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                 text(root, "motd", "<gold>A Kiln server</gold>"),
                 text(root, "maintenance-motd", "<gold>Under maintenance</gold>"),
                 number(root, "max-players", 100),
-                text(root, "world", "flat"));
+                text(root, "world", "flat"),
+                !Boolean.FALSE.equals(root.get("watch-plugins")));
     }
 
     private static int number(Map<String, Object> map, String key, int fallback) {

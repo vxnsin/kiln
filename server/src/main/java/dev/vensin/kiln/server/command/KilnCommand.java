@@ -54,7 +54,7 @@ public final class KilnCommand {
         this.version = version;
     }
 
-    public static void register(CommandManager commands, Operators operators, PluginManager plugins,
+    public static KilnCommand register(CommandManager commands, Operators operators, PluginManager plugins,
                                 Performance performance, Maintenance maintenance, String version) {
         KilnCommand kiln = new KilnCommand(operators, plugins, maintenance, version);
         Command root = new Command(NAME);
@@ -84,6 +84,7 @@ public final class KilnCommand {
         // Typing just "stop" into a console is a habit worth keeping.
         Command stop = kiln.admin("stop", (sender, context) -> kiln.stop(sender));
         commands.register(root, stop);
+        return kiln;
     }
 
     public static List<String> subcommands() {
@@ -225,7 +226,7 @@ public final class KilnCommand {
         return plugins.loaded().stream().map(loaded -> loaded.info().name()).toList();
     }
 
-    private void reload(CommandSender sender, String name) {
+    public void reload(CommandSender sender, String name) {
         String before = plugins.loaded().stream().filter(loaded -> loaded.info().name().equals(name))
                 .map(loaded -> loaded.info().version()).findFirst().orElse(null);
         if (before == null) {
@@ -240,7 +241,7 @@ public final class KilnCommand {
                 Chat.say(sender, "<green>" + name + " swapped.</green> <gray>" + before + " → " + loaded.info().version() + "</gray>"));
     }
 
-    private boolean unload(CommandSender sender, String name, boolean announce) {
+    public boolean unload(CommandSender sender, String name, boolean announce) {
         try {
             if (!plugins.unload(name)) {
                 Chat.error(sender, name + " is not loaded.");
@@ -271,7 +272,7 @@ public final class KilnCommand {
         return added;
     }
 
-    private void load(CommandSender sender) {
+    public void load(CommandSender sender) {
         List<PluginManager.Loaded> added = loadNew(sender);
         if (added.isEmpty() && plugins.failures().isEmpty()) {
             Chat.say(sender, "<gray>Nothing new in the plugins folder.</gray>");

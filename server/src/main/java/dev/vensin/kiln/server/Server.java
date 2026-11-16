@@ -11,6 +11,7 @@ import dev.vensin.kiln.server.console.InteractiveConsole;
 import dev.vensin.kiln.server.console.StartReport;
 import dev.vensin.kiln.server.console.Terminal;
 import dev.vensin.kiln.server.plugin.PluginManager;
+import dev.vensin.kiln.server.plugin.PluginWatcher;
 import dev.vensin.kiln.server.store.FileStore;
 import dev.vensin.kiln.server.store.PlayerDataManager;
 import dev.vensin.kiln.server.world.WorldFiles;
@@ -126,7 +127,11 @@ final class Server {
         listPlugins(report, loading, plugins);
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
-        KilnCommand.register(MinecraftServer.getCommandManager(), operators, plugins, performance, maintenance, version);
+        KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, plugins, performance,
+                maintenance, version);
+        if (settings.watchPlugins()) {
+            watch(plugins, kiln);
+        }
         MinecraftServer.getSchedulerManager().buildShutdownTask(() -> {
             plugins.disableAll();
             playerData.saveAll();
@@ -143,6 +148,24 @@ final class Server {
         }
     }
 
+
+    private static void watch(PluginManager plugins, KilnCommand kiln) throws IOException {
+        var console = MinecraftServer.getCommandManager().getConsoleSender();
+        var scheduler = MinecraftServer.getSchedulerManager();
+        new PluginWatcher(Path.of("plugins"), jar -> scheduler.scheduleNextTick(() -> {
+            String name = plugins.nameOf(jar);
+            if (name == null) {
+                kiln.load(console);
+            } else if (!plugins.isCurrent(jar)) {
+                kiln.reload(console, name);
+            }
+        }), jar -> scheduler.scheduleNextTick(() -> {
+            String name = plugins.nameOf(jar);
+            if (name != null) {
+                kiln.unload(console, name, true);
+            }
+        })).start();
+    }
     private static void listPlugins(StartReport report, StartReport.Step step, PluginManager plugins) {
         List<PluginManager.Loaded> loaded = plugins.loaded();
         List<PluginManager.Failure> failures = plugins.failures();

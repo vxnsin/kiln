@@ -25,3 +25,7 @@ max-players: 100
 #   none   plugins must set a spawning instance themselves
 #   name   a world folder in worlds/, for example one saved in singleplayer (read-only, never written back)
 world: flat
+
+# Swap a plugin as soon as its jar in plugins/ changes, load new jars and unload removed ones.
+# Handy while developing; turn it off if you would rather decide yourself with kiln reload.
+watch-plugins: true

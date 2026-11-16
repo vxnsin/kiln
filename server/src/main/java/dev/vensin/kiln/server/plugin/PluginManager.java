@@ -19,7 +19,8 @@ import java.util.stream.Stream;
 
 public final class PluginManager {
 
-    public record Loaded(PluginInfo info, Plugin plugin, PluginClassLoader loader, PluginContext context, Path copy) {}
+    public record Loaded(PluginInfo info, Plugin plugin, PluginClassLoader loader, PluginContext context, Path source,
+                         Path copy) {}
 
     /** A plugin that did not make it, with a reason short enough for one console line. */
     public record Failure(String name, String version, String reason, Throwable cause) {}
@@ -111,6 +112,23 @@ public final class PluginManager {
         return added;
     }
 
+
+    /** The plugin that was loaded from this jar, if any. */
+    public synchronized String nameOf(Path jar) {
+        return loaded.values().stream().filter(plugin -> plugin.source().equals(jar)).map(plugin -> plugin.info().name())
+                .findFirst().orElse(null);
+    }
+
+    /** True when the jar on disk is byte for byte what is loaded, so a swap would change nothing. */
+    public synchronized boolean isCurrent(Path jar) {
+        return loaded.values().stream().filter(plugin -> plugin.source().equals(jar)).anyMatch(plugin -> {
+            try {
+                return Files.mismatch(jar, plugin.copy()) == -1;
+            } catch (IOException unreadable) {
+                return false;
+            }
+        });
+    }
     /** Names of loaded plugins that need the given one and therefore block unloading it. */
     public synchronized List<String> dependents(String name) {
         return loaded.values().stream().filter(plugin -> plugin.info().depends().contains(name))
@@ -157,7 +175,7 @@ public final class PluginManager {
             context = new PluginContext(info, loader, directory.resolve(info.name()), dataRoot.resolve(info.name()),
                     operators, playerData, worlds);
             plugin.enable(context);
-            Loaded result = new Loaded(info, plugin, loader, context, copy);
+            Loaded result = new Loaded(info, plugin, loader, context, jar, copy);
             loaded.put(info.name(), result);
             return result;
         } catch (ClassNotFoundException e) {

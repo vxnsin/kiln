@@ -21,8 +21,10 @@ memory.
 
 ## What is in the box
 
-- **Plugins you can swap while it runs.** Jars in `plugins/` with a small `kiln-plugin.yml`. Replace a jar,
-  type `kiln reload <name>` and the new build takes over without a restart. Player data is saved in between.
+- **Plugins you can swap while it runs.** Jars in `plugins/` with a small `kiln-plugin.yml`. Replace a jar and
+  the new build takes over within a second, no restart and no command. Delete one and it is unloaded, add one
+  and it is loaded. Player data is saved in between. Prefer to decide yourself? Set `watch-plugins: false`
+  and use `kiln reload <name>`.
   They load in dependency order and are listed
   at startup. A plugin that fails shows up in red with the reason; the server keeps going.
 - **Player data.** One line gives a plugin a value per player. It is loaded while the player connects and
