@@ -137,6 +137,7 @@ Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kil
 | `/kiln group add <player> <group>`, `remove`, `reload` | Permission groups from `permissions.yml` |
 | `/kiln op <name>`, `deop <name>` | Operators, who may do everything |
 | `/kiln pack` | Read `pack.zip` again and send it to everyone |
+| `/kiln config reload` | Read `kiln.yml` again: name, colors, server list, chat and tab list change at once |
 | `/kiln version`, `update` | The running version and a newer one from GitHub |
 | `/kiln stop [seconds] [reason]`, `stop cancel` | Shut down now or after a countdown |
 

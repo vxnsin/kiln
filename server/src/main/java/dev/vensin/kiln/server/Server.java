@@ -41,6 +41,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minestom.server.Auth;
@@ -130,10 +131,10 @@ final class Server {
                 event.getConnection().kick(maintenance.screen());
             }
         });
-        listen(events, settings, ready, maintenance);
-        new ChatStyle(new ChatStyle.Templates(settings.chatFormat(), settings.joinMessage(), settings.leaveMessage(),
-                settings.tabHeader(), settings.tabFooter(), settings.name(), settings.serverId(), settings.maxPlayers()),
-                permissions).register(events);
+        AtomicReference<Settings> live = new AtomicReference<>(settings);
+        listen(events, live, ready, maintenance);
+        ChatStyle chatStyle = new ChatStyle(ChatStyle.from(settings), permissions);
+        chatStyle.register(events);
         if (settings.webPort() > 0) {
             new WebEndpoint(ready::get, new WebEndpoint.Identity(settings.name(), settings.serverId(), version,
                     settings.maxPlayers()), performance).start(settings.webPort());
@@ -201,6 +202,12 @@ final class Server {
         StartReport.Step opening = report.begin("Ready", "letting players in");
         KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, permissions, plugins,
                 performance, maintenance, version, pack, network, worlds, bans);
+        kiln.onConfigReload(() -> {
+            Settings fresh = Settings.load(Path.of("kiln.yml"));
+            Chat.brand(fresh.name(), fresh.colorFrom(), fresh.colorTo());
+            chatStyle.update(ChatStyle.from(fresh));
+            live.set(fresh);
+        });
         if (settings.watchPlugins()) {
             watch(plugins, kiln);
         }
@@ -301,7 +308,7 @@ final class Server {
         });
     }
 
-    private static void listen(GlobalEventHandler events, Settings settings, AtomicBoolean ready,
+    private static void listen(GlobalEventHandler events, AtomicReference<Settings> live, AtomicBoolean ready,
                                Maintenance maintenance) {
         events.addListener(PlayerSpawnEvent.class, event -> {
             if (event.isFirstSpawn()) {
@@ -314,8 +321,8 @@ final class Server {
         events.addListener(ServerListPingEvent.class, event -> {
             Status.Builder status = Status.builder(event.getStatus())
                     .description(MiniMessage.miniMessage().deserialize(!ready.get() ? STARTING_MOTD
-                            : maintenance.enabled() ? settings.maintenanceMotd() : settings.motd()))
-                    .playerInfo(MinecraftServer.getConnectionManager().getOnlinePlayers().size(), settings.maxPlayers());
+                            : maintenance.enabled() ? live.get().maintenanceMotd() : live.get().motd()))
+                    .playerInfo(MinecraftServer.getConnectionManager().getOnlinePlayers().size(), live.get().maxPlayers());
             if (icon != null) {
                 status.favicon(icon);
             }

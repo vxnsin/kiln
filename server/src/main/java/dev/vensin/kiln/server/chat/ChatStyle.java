@@ -1,5 +1,6 @@
 package dev.vensin.kiln.server.chat;
 
+import dev.vensin.kiln.server.Settings;
 import dev.vensin.kiln.server.command.Permissions;
 import java.time.Duration;
 import net.kyori.adventure.text.Component;
@@ -25,8 +26,13 @@ public final class ChatStyle {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final Duration TAB_REFRESH = Duration.ofSeconds(2);
 
-    private final Templates templates;
+    private volatile Templates templates;
     private final Permissions permissions;
+
+    public static Templates from(Settings settings) {
+        return new Templates(settings.chatFormat(), settings.joinMessage(), settings.leaveMessage(), settings.tabHeader(),
+                settings.tabFooter(), settings.name(), settings.serverId(), settings.maxPlayers());
+    }
 
     public ChatStyle(Templates templates, Permissions permissions) {
         this.templates = templates;
@@ -34,10 +40,12 @@ public final class ChatStyle {
     }
 
     public void register(GlobalEventHandler events) {
-        if (!templates.chat().isBlank()) {
-            events.addListener(PlayerChatEvent.class, event -> event.setFormattedMessage(render(templates.chat(),
-                    event.getPlayer(), Placeholder.unparsed("message", event.getRawMessage()))));
-        }
+        events.addListener(PlayerChatEvent.class, event -> {
+            if (!templates.chat().isBlank()) {
+                event.setFormattedMessage(render(templates.chat(), event.getPlayer(),
+                        Placeholder.unparsed("message", event.getRawMessage())));
+            }
+        });
         events.addListener(PlayerSpawnEvent.class, event -> {
             if (event.isFirstSpawn() && !templates.join().isBlank()) {
                 broadcast(render(templates.join(), event.getPlayer()));
@@ -48,21 +56,28 @@ public final class ChatStyle {
                 broadcast(render(templates.leave(), event.getPlayer()));
             }
         });
-        if (!templates.header().isBlank() || !templates.footer().isBlank()) {
-            MinecraftServer.getSchedulerManager().buildTask(this::updateTabList).repeat(TAB_REFRESH).schedule();
-        }
+        MinecraftServer.getSchedulerManager().buildTask(this::updateTabList).repeat(TAB_REFRESH).schedule();
+    }
+
+    /** New templates from a reloaded kiln.yml; they apply from the next message on. */
+    public void update(Templates templates) {
+        this.templates = templates;
     }
 
     private void updateTabList() {
+        Templates current = templates;
+        if (current.header().isBlank() && current.footer().isBlank()) {
+            return;
+        }
         var players = MinecraftServer.getConnectionManager().getOnlinePlayers();
         TagResolver counts = TagResolver.resolver(
                 Placeholder.unparsed("online", String.valueOf(players.size())),
-                Placeholder.unparsed("max", String.valueOf(templates.maxPlayers())),
-                Placeholder.unparsed("server", templates.serverName()),
-                Placeholder.unparsed("server-id", templates.serverId()));
+                Placeholder.unparsed("max", String.valueOf(current.maxPlayers())),
+                Placeholder.unparsed("server", current.serverName()),
+                Placeholder.unparsed("server-id", current.serverId()));
         for (Player player : players) {
-            player.sendPlayerListHeaderAndFooter(MINI_MESSAGE.deserialize(templates.header(), counts),
-                    MINI_MESSAGE.deserialize(templates.footer(), counts));
+            player.sendPlayerListHeaderAndFooter(MINI_MESSAGE.deserialize(current.header(), counts),
+                    MINI_MESSAGE.deserialize(current.footer(), counts));
         }
     }
 

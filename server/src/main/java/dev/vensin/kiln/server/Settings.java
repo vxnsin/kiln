@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.yaml.snakeyaml.error.MarkedYAMLException;
 
 public record Settings(String host, int port, boolean onlineMode, String velocitySecret, String motd,
                        String maintenanceMotd, int maxPlayers, String world, boolean watchPlugins, String name,
@@ -41,8 +42,14 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                 Files.copy(defaults, file);
             }
         }
-        Map<String, Object> yaml = new Yaml(new SafeConstructor(new LoaderOptions()))
-                .load(Files.readString(file, StandardCharsets.UTF_8));
+        Map<String, Object> yaml;
+        try {
+            yaml = new Yaml(new SafeConstructor(new LoaderOptions())).load(Files.readString(file, StandardCharsets.UTF_8));
+        } catch (MarkedYAMLException e) {
+            // SnakeYAML's message spans several lines with a drawn pointer; one line with the position is enough.
+            throw new IllegalArgumentException(file.getFileName() + " line " + (e.getProblemMark().getLine() + 1) + ": "
+                    + e.getProblem());
+        }
         Values values = new Values(yaml == null ? Map.of() : yaml, environment);
         return new Settings(
                 values.text("host", "0.0.0.0"),

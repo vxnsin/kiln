@@ -53,6 +53,7 @@ public final class KilnCommand {
         HELP.put("maintenance", "let only operators and allowed players in");
         HELP.put("group", "permission groups from permissions.yml");
         HELP.put("pack", "read the resource pack again and send it to everyone");
+        HELP.put("config reload", "read kiln.yml again without a restart");
         HELP.put("op [name]", "give a player admin rights");
         HELP.put("deop [name]", "take them away again");
         HELP.put("kick [player] [reason]", "send a player away with a reason");
@@ -70,6 +71,7 @@ public final class KilnCommand {
     private final ResourcePackHost pack;
     private final NetworkService network;
     private final Bans bans;
+    private ConfigReload configReload = () -> { };
     private final Countdown countdown = new Countdown();
 
     private KilnCommand(Operators operators, Permissions permissions, PluginManager plugins, Maintenance maintenance,
@@ -115,6 +117,7 @@ public final class KilnCommand {
                 kiln.withName("deop", "deop", (sender, name) -> kiln.change(sender, name, false)),
                 kiln.maintenanceCommand(),
                 kiln.groupCommand(),
+                kiln.configCommand(),
                 kiln.admin("pack", "kiln.pack", (sender, context) -> kiln.resendPack(sender)),
                 kiln.kickCommand(),
                 kiln.banCommand(),
@@ -568,6 +571,30 @@ public final class KilnCommand {
                 Chat.error(sender, context.get(server) + " is not a server in the network with a public-address.");
             }
         }, player, server);
+        return command;
+    }
+
+    /** What a reload of kiln.yml does; Settings.load can fail, which the command reports. */
+    public interface ConfigReload {
+        void run() throws IOException;
+    }
+
+    public void onConfigReload(ConfigReload action) {
+        this.configReload = action;
+    }
+
+    private Command configCommand() {
+        Command command = admin("config", "kiln.config",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln config reload</gray>"));
+        command.addSubcommand(admin("reload", "kiln.config", (sender, context) -> {
+            try {
+                configReload.run();
+                Chat.say(sender, "<green>kiln.yml reloaded.</green> <gray>Name, colors, server list, chat and tab list "
+                        + "use the new values; ports, storage and worlds change with a restart.</gray>");
+            } catch (IOException | RuntimeException e) {
+                Chat.error(sender, "kiln.yml could not be read, nothing changed: " + e.getMessage());
+            }
+        }));
         return command;
     }
 }
