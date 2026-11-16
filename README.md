@@ -121,6 +121,8 @@ Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kil
 | `/kiln performance` (`perf`) | Ticks, memory, CPU, the world and each plugin's time per tick |
 | `/kiln players` | Who is online |
 | `/kiln servers`, `find <player>` | Every server in the network and who is where |
+| `/kiln gm <mode> [player]`, `tp <player> [target]` | Game mode and teleporting while you build and test |
+| `/kiln world [name]`, `world home` | Walk through a map from `worlds/` in a throwaway copy |
 | `/kiln kick <player> [reason]` | Send a player away with a clean screen |
 | `/kiln say <message>` | Announce something to everyone |
 | `/kiln maintenance on`, `off`, `allow <name>`, `deny <name>` | Let only operators and allowed players in |

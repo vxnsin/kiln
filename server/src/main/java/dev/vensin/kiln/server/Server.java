@@ -183,7 +183,7 @@ final class Server {
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
         KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, permissions, plugins,
-                performance, maintenance, version, pack, network);
+                performance, maintenance, version, pack, network, worlds);
         if (settings.watchPlugins()) {
             watch(plugins, kiln);
         }

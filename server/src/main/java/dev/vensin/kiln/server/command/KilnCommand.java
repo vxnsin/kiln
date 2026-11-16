@@ -3,6 +3,7 @@ package dev.vensin.kiln.server.command;
 import dev.vensin.kiln.server.console.InteractiveConsole;
 import dev.vensin.kiln.server.network.NetworkService;
 import dev.vensin.kiln.server.pack.ResourcePackHost;
+import dev.vensin.kiln.server.world.WorldFiles;
 import dev.vensin.kiln.server.plugin.PluginManager;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,6 +41,9 @@ public final class KilnCommand {
         HELP.put("players", "who is online");
         HELP.put("servers", "every server in the network and its players");
         HELP.put("find [player]", "which server a player is on");
+        HELP.put("gm [mode] [player]", "survival, creative, adventure or spectator");
+        HELP.put("tp [player] [target]", "go to a player, or send one to another");
+        HELP.put("world [name]", "visit a map from worlds/, or home");
         HELP.put("performance", "ticks, memory, CPU and what the world holds (short: perf)");
         HELP.put("version", "the running version");
         HELP.put("update", "look for a newer release and fetch it");
@@ -76,7 +80,7 @@ public final class KilnCommand {
     public static KilnCommand register(CommandManager commands, Operators operators, Permissions permissions,
                                        PluginManager plugins,
                                 Performance performance, Maintenance maintenance, String version,
-                                ResourcePackHost pack, NetworkService network) {
+                                ResourcePackHost pack, NetworkService network, WorldFiles worlds) {
         KilnCommand kiln = new KilnCommand(operators, permissions, plugins, maintenance, version, pack, network);
         Command root = new Command(NAME);
         root.setDefaultExecutor((sender, context) -> {
@@ -107,6 +111,8 @@ public final class KilnCommand {
                 kiln.kickCommand(),
                 kiln.sayCommand(),
                 kiln.stopCommand());
+
+        new TravelCommands(permissions, worlds).commands().forEach(root::addSubcommand);
 
         // Typing just "stop" into a console is a habit worth keeping.
         Command stop = kiln.admin("stop", "kiln.stop", (sender, context) -> kiln.stop(sender, ""));
