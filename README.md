@@ -69,6 +69,10 @@ memory.
 Kiln sits on top of Minestom and does not fork it. Events, commands, instances and entities are plain
 Minestom, so its documentation applies unchanged.
 
+<p align="center">
+  <img src="docs/dashboard.jpg" alt="The Kiln dashboard in a browser: ticks with a chart, time per tick, players, memory, CPU, world and the time per tick of each plugin" width="800">
+</p>
+
 ## When Kiln fits
 
 Kiln is for servers that are a game rather than a world: lobbies, minigames, event servers, parkour,
