@@ -32,9 +32,9 @@ memory.
 - **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and Kiln
   picks the file that matches each player's Minecraft language. Server owners can edit the texts in
   `plugins/<name>/lang/` without touching the jar.
-- **One command for the server itself.** `/kiln` with `plugins`, `reload`, `load`, `unload`, `players`, `performance`, `group`, `pack`,
-  `maintenance`, `version`, `update`, `op`, `deop` and `stop`, in the console with tab completion and in
-  game for operators.
+- **One command for the server itself.** Everything Kiln does lives under `/kiln`, so plugins keep the rest
+  of the command space. It works in the console with tab completion and in game for anyone with the
+  matching permission. `/kiln stop 60 update` shows everyone a countdown before the server goes down.
 - **One settings file.** `kiln.yml` is written on first start, with a comment on every option. It also holds
   your server name and two colors, which every chat message and disconnect screen uses.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
@@ -97,6 +97,26 @@ java -jar kiln-0.1.0.jar
 ```
 
 Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kiln op <your name>` into the console.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `/kiln plugins` | Loaded plugins and their versions |
+| `/kiln reload <plugin>`, `load`, `unload <plugin>` | Swap, add or remove plugins on the running server |
+| `/kiln performance` (`perf`) | Ticks, memory, CPU, the world and each plugin's time per tick |
+| `/kiln players` | Who is online |
+| `/kiln kick <player> [reason]` | Send a player away with a clean screen |
+| `/kiln say <message>` | Announce something to everyone |
+| `/kiln maintenance on`, `off`, `allow <name>`, `deny <name>` | Let only operators and allowed players in |
+| `/kiln group add <player> <group>`, `remove`, `reload` | Permission groups from `permissions.yml` |
+| `/kiln op <name>`, `deop <name>` | Operators, who may do everything |
+| `/kiln pack` | Read `pack.zip` again and send it to everyone |
+| `/kiln version`, `update` | The running version and a newer one from GitHub |
+| `/kiln stop [seconds] [reason]`, `stop cancel` | Shut down now or after a countdown |
+
+Each command needs the permission `kiln.<command>`, for example `kiln.kick`. Operators and the console have
+all of them.
 
 ## One server per round
 

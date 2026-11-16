@@ -17,7 +17,10 @@ import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.command.builder.CommandExecutor;
 import net.minestom.server.command.builder.arguments.ArgumentType;
+import net.minestom.server.command.builder.arguments.ArgumentStringArray;
 import net.minestom.server.command.builder.arguments.ArgumentWord;
+import net.minestom.server.command.builder.arguments.number.ArgumentInteger;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minestom.server.command.builder.suggestion.SuggestionEntry;
 import net.minestom.server.entity.Player;
 
@@ -42,7 +45,9 @@ public final class KilnCommand {
         HELP.put("pack", "read the resource pack again and send it to everyone");
         HELP.put("op [name]", "give a player admin rights");
         HELP.put("deop [name]", "take them away again");
-        HELP.put("stop", "save and shut down");
+        HELP.put("kick [player] [reason]", "send a player away with a reason");
+        HELP.put("say [message]", "announce something to everyone");
+        HELP.put("stop [seconds] [reason]", "shut down, now or after a visible countdown");
     }
 
     private final Operators operators;
@@ -51,6 +56,7 @@ public final class KilnCommand {
     private final Maintenance maintenance;
     private final String version;
     private final ResourcePackHost pack;
+    private final Countdown countdown = new Countdown();
 
     private KilnCommand(Operators operators, Permissions permissions, PluginManager plugins, Maintenance maintenance,
                         String version, ResourcePackHost pack) {
@@ -91,10 +97,13 @@ public final class KilnCommand {
                 kiln.maintenanceCommand(),
                 kiln.groupCommand(),
                 kiln.admin("pack", "kiln.pack", (sender, context) -> kiln.resendPack(sender)),
-                kiln.admin("stop", "kiln.stop", (sender, context) -> kiln.stop(sender)));
+                kiln.kickCommand(),
+                kiln.sayCommand(),
+                kiln.stopCommand());
 
         // Typing just "stop" into a console is a habit worth keeping.
-        Command stop = kiln.admin("stop", "kiln.stop", (sender, context) -> kiln.stop(sender));
+        Command stop = kiln.admin("stop", "kiln.stop", (sender, context) -> kiln.stop(sender, ""));
+        kiln.countdown.register(MinecraftServer.getGlobalEventHandler());
         commands.register(root, stop);
         return kiln;
     }
@@ -155,12 +164,74 @@ public final class KilnCommand {
         }
     }
 
-    private void stop(CommandSender sender) {
+    private void stop(CommandSender sender, String reason) {
         Chat.say(sender, "<gray>Shutting down</gray>");
+        String advice = reason.isBlank() ? "It will be back shortly." : reason;
         MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(player -> player.kick(
-                Chat.screen("The server is shutting down", "It will be back shortly.")));
+                Chat.screen("The server is shutting down", advice)));
         MinecraftServer.stopCleanly();
         System.exit(0);
+    }
+
+    private Command stopCommand() {
+        ArgumentInteger seconds = ArgumentType.Integer("seconds");
+        seconds.between(1, 3600);
+        ArgumentStringArray reason = ArgumentType.StringArray("reason");
+        Command command = admin("stop", "kiln.stop", (sender, context) -> stop(sender, ""));
+        CommandExecutor countdownExecutor = (sender, context) -> {
+            int time = context.get(seconds);
+            String why = context.has(reason) ? String.join(" ", context.get(reason)) : "";
+            countdown.start(time, why, done -> stop(sender, done));
+            broadcast("<yellow>The server stops in " + Countdown.time(time) + ".</yellow>"
+                    + (why.isBlank() ? "" : " <gray>" + MiniMessage.miniMessage().escapeTags(why) + "</gray>"));
+        };
+        command.addSyntax(countdownExecutor, seconds);
+        command.addSyntax(countdownExecutor, seconds, reason);
+        command.addSubcommand(admin("cancel", "kiln.stop", (sender, context) -> {
+            if (countdown.cancel()) {
+                broadcast("<green>The stop was called off.</green>");
+            } else {
+                Chat.say(sender, "<gray>No countdown is running.</gray>");
+            }
+        }));
+        return command;
+    }
+
+    private Command kickCommand() {
+        ArgumentWord player = ArgumentType.Word("player");
+        player.setSuggestionCallback((sender, context, suggestion) -> MinecraftServer.getConnectionManager()
+                .getOnlinePlayers().forEach(online -> suggestion.addEntry(new SuggestionEntry(online.getUsername()))));
+        ArgumentStringArray reason = ArgumentType.StringArray("reason");
+        Command command = admin("kick", "kiln.kick",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln kick [player] [reason]</gray>"));
+        CommandExecutor kick = (sender, context) -> {
+            Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(context.get(player));
+            if (target == null) {
+                Chat.error(sender, context.get(player) + " is not online.");
+                return;
+            }
+            String why = context.has(reason) ? String.join(" ", context.get(reason)) : "";
+            target.kick(Chat.screen("You were kicked", why.isBlank() ? "You can join again." : why));
+            Chat.say(sender, "<green>" + target.getUsername() + " was kicked.</green>");
+        };
+        command.addSyntax(kick, player);
+        command.addSyntax(kick, player, reason);
+        return command;
+    }
+
+    private Command sayCommand() {
+        ArgumentStringArray message = ArgumentType.StringArray("message");
+        Command command = admin("say", "kiln.say",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln say [message]</gray>"));
+        command.addSyntax((sender, context) -> broadcast("<white>"
+                + MiniMessage.miniMessage().escapeTags(String.join(" ", context.get(message))) + "</white>"), message);
+        return command;
+    }
+
+    /** To every player and the console, with the server's prefix. */
+    private static void broadcast(String miniMessage) {
+        MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(player -> Chat.say(player, miniMessage));
+        Chat.say(MinecraftServer.getCommandManager().getConsoleSender(), miniMessage);
     }
 
     private Command admin(String name, String permission, CommandExecutor executor, String... aliases) {
