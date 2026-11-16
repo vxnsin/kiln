@@ -18,7 +18,8 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                        String colorFrom, String colorTo, int webPort, int stopWhenEmpty, String language,
                        String packFile, String packHost, int packPort, String packUrl, boolean packRequired,
                        String packPrompt, String storage, String redisUri, String mongoUri, String serverId,
-                       String chatFormat, String joinMessage, String leaveMessage, String tabHeader, String tabFooter) {
+                       String chatFormat, String joinMessage, String leaveMessage, String tabHeader, String tabFooter,
+                       String publicAddress) {
 
     private static final String DEFAULTS = "kiln.yml";
     private static final String DEFAULT_CHAT = "<prefix><white><name></white> <dark_gray>»</dark_gray> <gray><message></gray>";
@@ -73,7 +74,8 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                 values.text("chat.join", DEFAULT_JOIN),
                 values.text("chat.leave", DEFAULT_LEAVE),
                 values.text("tab-list.header", ""),
-                values.text("tab-list.footer", ""));
+                values.text("tab-list.footer", ""),
+                values.text("public-address", ""));
     }
 
 

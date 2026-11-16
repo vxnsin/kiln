@@ -43,6 +43,7 @@ public final class KilnCommand {
         HELP.put("players", "who is online");
         HELP.put("servers", "every server in the network and its players");
         HELP.put("find [player]", "which server a player is on");
+        HELP.put("send [player] [server]", "move a player to another server, no proxy needed");
         HELP.put("gm [mode] [player]", "survival, creative, adventure or spectator");
         HELP.put("tp [player] [target]", "go to a player, or send one to another");
         HELP.put("world [name]", "visit a map from worlds/, or home");
@@ -102,6 +103,7 @@ public final class KilnCommand {
                 kiln.admin("players", "kiln.players", (sender, context) -> kiln.players(sender)),
                 kiln.admin("servers", "kiln.servers", (sender, context) -> kiln.servers(sender)),
                 kiln.findCommand(),
+                kiln.sendCommand(),
                 kiln.withPlugin("reload", kiln::reload),
                 kiln.admin("load", "kiln.load", (sender, context) -> MinecraftServer.getSchedulerManager()
                         .scheduleNextTick(() -> kiln.load(sender))),
@@ -472,7 +474,8 @@ public final class KilnCommand {
                 + (players == 1 ? " player" : " players") + "</white>");
         for (var server : servers) {
             String self = server.id().equals(network.serverId()) ? " <gold>(this one)</gold>" : "";
-            Chat.item(sender, "<white>" + MiniMessage.miniMessage().escapeTags(server.id()) + "</white>" + self
+            String address = server.address() == null || server.address().isBlank() ? "" : " <dark_gray>" + server.address() + "</dark_gray>";
+            Chat.item(sender, "<white>" + MiniMessage.miniMessage().escapeTags(server.id()) + "</white>" + self + address
                     + " <gray>" + server.players().size() + "/" + server.maxPlayers()
                     + (server.players().isEmpty() ? "" : " · " + String.join(", ", server.players())) + "</gray>");
         }
@@ -543,5 +546,28 @@ public final class KilnCommand {
         all.forEach(ban -> Chat.item(sender, "<white>" + ban.name() + "</white> <gray>" + Bans.describe(ban) + ", by "
                 + ban.by() + (ban.reason().isBlank() ? "" : " · " + MiniMessage.miniMessage().escapeTags(ban.reason()))
                 + "</gray>"));
+    }
+
+    private Command sendCommand() {
+        ArgumentWord player = ArgumentType.Word("player");
+        player.setSuggestionCallback((sender, context, suggestion) -> MinecraftServer.getConnectionManager()
+                .getOnlinePlayers().forEach(online -> suggestion.addEntry(new SuggestionEntry(online.getUsername()))));
+        ArgumentWord server = ArgumentType.Word("server");
+        server.setSuggestionCallback((sender, context, suggestion) -> network.servers().stream()
+                .filter(info -> !info.id().equals(network.serverId()) && !info.address().isBlank())
+                .forEach(info -> suggestion.addEntry(new SuggestionEntry(info.id()))));
+        Command command = admin("send", "kiln.send",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln send [player] [server]</gray>"));
+        command.addSyntax((sender, context) -> {
+            Player target = MinecraftServer.getConnectionManager().getOnlinePlayerByUsername(context.get(player));
+            if (target == null) {
+                Chat.error(sender, context.get(player) + " is not on this server.");
+            } else if (network.send(target, context.get(server))) {
+                Chat.say(sender, "<green>" + target.getUsername() + " is on the way to " + context.get(server) + ".</green>");
+            } else {
+                Chat.error(sender, context.get(server) + " is not a server in the network with a public-address.");
+            }
+        }, player, server);
+        return command;
     }
 }

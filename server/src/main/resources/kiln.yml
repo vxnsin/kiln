@@ -64,6 +64,10 @@ storage:
 # This server's name among other Kiln servers sharing the same Redis. Empty: the machine or container name.
 server-id: ""
 
+# How players reach this server directly, as host:port, e.g. play.example.com:25566. When it is set, other
+# Kiln servers in the network can send players here with /kiln send, using Minecraft's transfer, no proxy needed.
+public-address: ""
+
 # A resource pack for every player. Drop pack.zip next to the server and it is sent on join; no file, no pack.
 resource-pack:
   file: pack.zip

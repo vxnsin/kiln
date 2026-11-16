@@ -92,6 +92,11 @@ final class Server {
             System.exit(1);
         }
         boolean proxied = !settings.velocitySecret().isBlank();
+        if (!proxied && !settings.publicAddress().isBlank()) {
+            // Behind a proxy every player must come through it, so direct transfers stay closed there.
+            // Read once when Minestom starts, so it has to be in place before anything of Minestom loads.
+            System.setProperty("minestom.accept-transfers", "true");
+        }
         Auth auth = proxied ? new Auth.Velocity(settings.velocitySecret())
                 : settings.onlineMode() ? new Auth.Online() : new Auth.Offline();
         MinecraftServer server = MinecraftServer.init(auth);
@@ -140,7 +145,7 @@ final class Server {
 
         report.beginQuietly("Storage").ok(storage.describe());
         NetworkService network = new NetworkService(storage instanceof RedisDriver redis ? new RedisBus(redis.uri())
-                : new LocalBus(), settings.serverId(), settings.maxPlayers());
+                : new LocalBus(), settings.serverId(), settings.maxPlayers(), settings.publicAddress());
         report.beginQuietly("Network").ok(network.describe());
 
         StartReport.Step world = report.begin("World", "preparing the default world");

@@ -34,13 +34,15 @@ public final class NetworkService {
     private final Bus bus;
     private final String serverId;
     private final int maxPlayers;
+    private final String address;
     private final Map<String, List<Consumer<JsonElement>>> handlers = new ConcurrentHashMap<>();
     private final Map<String, Seen> servers = new ConcurrentHashMap<>();
 
-    public NetworkService(Bus bus, String serverId, int maxPlayers) {
+    public NetworkService(Bus bus, String serverId, int maxPlayers, String address) {
         this.bus = bus;
         this.serverId = serverId;
         this.maxPlayers = maxPlayers;
+        this.address = address;
         bus.listen(this::receive);
     }
 
@@ -90,8 +92,20 @@ public final class NetworkService {
                 .map(ServerInfo::id).findFirst();
     }
 
+
+    public boolean send(Player player, String target) {
+        ServerInfo server = servers().stream().filter(info -> info.id().equals(target)).findFirst().orElse(null);
+        if (server == null || server.address() == null || server.address().isBlank() || target.equals(serverId)) {
+            return false;
+        }
+        int colon = server.address().lastIndexOf(':');
+        String host = colon < 0 ? server.address() : server.address().substring(0, colon);
+        int port = colon < 0 ? 25565 : Integer.parseInt(server.address().substring(colon + 1));
+        player.getPlayerConnection().transfer(host, port);
+        return true;
+    }
     private ServerInfo self() {
-        return new ServerInfo(serverId, maxPlayers, MinecraftServer.getConnectionManager().getOnlinePlayers().stream()
+        return new ServerInfo(serverId, address, maxPlayers, MinecraftServer.getConnectionManager().getOnlinePlayers().stream()
                 .map(Player::getUsername).sorted().toList());
     }
 

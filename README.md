@@ -66,6 +66,8 @@ memory.
 - **Servers that know each other.** With Redis as storage, Kiln servers find each other: `/kiln servers`
   lists all of them with their players, `/kiln find <player>` says where someone is, and plugins send
   messages to themselves on every other server.
+- **A network without a proxy.** Give each server a `public-address` and `/kiln send <player> <server>`
+  moves players between them with Minecraft's own transfer. Plugins do the same with `kiln.network().send`.
 - **Behind a proxy.** Put your Velocity forwarding secret into `kiln.yml`.
 - **Made for containers.** Every setting can come from an environment variable, there is a health check, a
   Dockerfile, and a server can shut itself down when the round is over.
@@ -125,6 +127,7 @@ Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kil
 | `/kiln performance` (`perf`) | Ticks, memory, CPU, the world and each plugin's time per tick |
 | `/kiln players` | Who is online |
 | `/kiln servers`, `find <player>` | Every server in the network and who is where |
+| `/kiln send <player> <server>` | Move a player to another server in the network, no proxy needed |
 | `/kiln gm <mode> [player]`, `tp <player> [target]` | Game mode and teleporting while you build and test |
 | `/kiln world [name]`, `world home` | Walk through a map from `worlds/` in a throwaway copy |
 | `/kiln kick <player> [reason]` | Send a player away with a clean screen |

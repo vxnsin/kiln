@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import net.minestom.server.entity.Player;
 
 /** Channels are prefixed with the plugin name, so two plugins never hear each other by accident. */
 final class PluginNetwork implements Network {
@@ -58,6 +59,11 @@ final class PluginNetwork implements Network {
     @Override
     public Optional<String> serverOf(String playerName) {
         return service.serverOf(playerName);
+    }
+
+    @Override
+    public boolean send(Player player, String serverId) {
+        return service.send(player, serverId);
     }
 
     void close() {

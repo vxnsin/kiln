@@ -187,6 +187,18 @@ Handlers run on the server thread, so they can touch players and worlds directly
 lists every server with its players, and `serverOf(name)` finds a player. Without Redis, messages only reach
 the same server, so the code above works unchanged on a single server.
 
+To move a player to another server, for example from the lobby into a free game:
+
+```java
+kiln.network().servers().stream()
+        .filter(server -> server.id().startsWith("game-") && server.players().size() < server.maxPlayers())
+        .findFirst()
+        .ifPresent(server -> kiln.network().send(player, server.id()));
+```
+
+This uses Minecraft's transfer and needs no proxy. The target server needs `public-address` in its `kiln.yml`,
+which is the address players use to reach it.
+
 ## Swapping safely
 
 Kiln removes, on unload or swap: listeners from `kiln.events()`, commands from `kiln.commands()`, timers from

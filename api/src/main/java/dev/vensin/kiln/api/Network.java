@@ -3,6 +3,7 @@ package dev.vensin.kiln.api;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import net.minestom.server.entity.Player;
 
 /**
  * Messages between Kiln servers that share a Redis, Valkey or Dragonfly (storage type redis). Without one, messages
@@ -24,4 +25,10 @@ public interface Network {
 
     /** The server a player is on right now, if any server in the network has them. */
     Optional<String> serverOf(String playerName);
+
+    /**
+     * Moves a player to another server in the network, without a proxy, using Minecraft's transfer. Works when the
+     * target has a public-address in its kiln.yml. Returns false when the server is unknown or has no address.
+     */
+    boolean send(Player player, String serverId);
 }
