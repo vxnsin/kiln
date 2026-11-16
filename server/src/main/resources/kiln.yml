@@ -23,7 +23,7 @@ motd: "<gradient:#ff8700:#ffd700><bold>A Kiln server</bold></gradient><newline><
 # Text in the server list while maintenance is on (/kiln maintenance on).
 maintenance-motd: "<gradient:#ff8700:#ffd700><bold>Under maintenance</bold></gradient><newline><gray>back soon</gray>"
 
-# Number shown as the player limit in the server list.
+# Player limit, shown in the server list. Operators get in even when it is reached.
 max-players: 100
 
 # Language for plugin texts when a player's client language has no translation (two letters, like en or de).

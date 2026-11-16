@@ -133,6 +133,9 @@ final class Server {
                 event.getConnection().kick(Bans.screen(bans.active(event.getGameProfile().name()).get()));
             } else if (!maintenance.lets(event.getGameProfile().name())) {
                 event.getConnection().kick(maintenance.screen());
+            } else if (MinecraftServer.getConnectionManager().getOnlinePlayers().size() >= settings.maxPlayers()
+                    && !operators.isOperator(event.getGameProfile().name())) {
+                event.getConnection().kick(Chat.screen("The server is full", "Try again in a moment."));
             }
         });
         AtomicReference<Settings> live = new AtomicReference<>(settings);
