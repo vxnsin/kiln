@@ -159,6 +159,9 @@ public void startRound(List<Player> players) {
 }
 ```
 
+Set `player.setRespawnPoint(spawn)` as well when you move players: if someone falls out of the map, Kiln's
+void rescue brings them back to their respawn point.
+
 `close` sends everyone inside back to the default world and releases the map. Worlds a plugin opened are
 closed for it when it is unloaded.
 

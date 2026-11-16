@@ -50,7 +50,10 @@ import net.minestom.server.coordinate.Pos;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.event.player.AsyncPlayerPreLoginEvent;
+import net.minestom.server.entity.GameMode;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.event.player.PlayerMoveEvent;
+import net.minestom.server.instance.Instance;
 import net.minestom.server.event.player.PlayerSpawnEvent;
 import net.minestom.server.event.server.ServerListPingEvent;
 import net.minestom.server.instance.InstanceContainer;
@@ -64,6 +67,7 @@ final class Server {
 
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     private static final int GROUND = 40;
+    private static final int VOID_MARGIN = 64;
     private static final String STARTING_MOTD =
             "<gradient:#ff8700:#ffd700><bold>Starting up</bold></gradient><newline><gray>ready in a few seconds</gray>";
 
@@ -310,6 +314,25 @@ final class Server {
 
     private static void listen(GlobalEventHandler events, AtomicReference<Settings> live, AtomicBoolean ready,
                                Maintenance maintenance) {
+        GameMode joinMode = switch (live.get().gameMode()) {
+            case "survival" -> GameMode.SURVIVAL;
+            case "creative" -> GameMode.CREATIVE;
+            case "spectator" -> GameMode.SPECTATOR;
+            default -> GameMode.ADVENTURE;
+        };
+        events.addListener(PlayerSpawnEvent.class, event -> {
+            if (event.isFirstSpawn()) {
+                event.getPlayer().setGameMode(joinMode);
+            }
+        });
+        if (live.get().voidRescue()) {
+            events.addListener(PlayerMoveEvent.class, event -> {
+                Instance instance = event.getPlayer().getInstance();
+                if (instance != null && event.getNewPosition().y() < instance.getCachedDimensionType().minY() - VOID_MARGIN) {
+                    event.setNewPosition(event.getPlayer().getRespawnPoint());
+                }
+            });
+        }
         events.addListener(PlayerSpawnEvent.class, event -> {
             if (event.isFirstSpawn()) {
                 LOG.info("{} {} joined {}", Ansi.green(Ansi.JOIN), event.getPlayer().getUsername(), online(0));
