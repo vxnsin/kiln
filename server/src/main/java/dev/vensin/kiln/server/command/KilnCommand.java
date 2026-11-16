@@ -8,6 +8,7 @@ import dev.vensin.kiln.server.plugin.PluginManager;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -324,6 +325,7 @@ public final class KilnCommand {
         return plugins.loaded().stream().map(loaded -> loaded.info().name()).toList();
     }
 
+    /** Plugins that depend on this one come out first and go back in with it, so they see the new code. */
     public void reload(CommandSender sender, String name) {
         String before = plugins.loaded().stream().filter(loaded -> loaded.info().name().equals(name))
                 .map(loaded -> loaded.info().version()).findFirst().orElse(null);
@@ -331,12 +333,26 @@ public final class KilnCommand {
             Chat.error(sender, name + " is not loaded.");
             return;
         }
-        if (!unload(sender, name, false)) {
-            return;
+        List<String> chain = new ArrayList<>();
+        collectDependents(name, chain);
+        for (int i = chain.size() - 1; i >= 0; i--) {
+            if (!unload(sender, chain.get(i), false)) {
+                return;
+            }
         }
         List<PluginManager.Loaded> added = loadNew(sender);
         added.stream().filter(loaded -> loaded.info().name().equals(name)).findFirst().ifPresent(loaded ->
-                Chat.say(sender, "<green>" + name + " swapped.</green> <gray>" + before + " → " + loaded.info().version() + "</gray>"));
+                Chat.say(sender, "<green>" + name + " swapped.</green> <gray>" + before + " → " + loaded.info().version()
+                        + (chain.size() > 1 ? ", with " + String.join(", ", chain.subList(1, chain.size())) : "") + "</gray>"));
+    }
+
+    /** The plugin, then everything that needs it, in an order where each comes after what it needs. */
+    private void collectDependents(String name, List<String> into) {
+        if (into.contains(name)) {
+            return;
+        }
+        into.add(name);
+        plugins.dependents(name).forEach(dependent -> collectDependents(dependent, into));
     }
 
     public boolean unload(CommandSender sender, String name, boolean announce) {

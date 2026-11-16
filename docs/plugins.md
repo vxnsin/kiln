@@ -203,7 +203,8 @@ depends: [economy]
 ```
 
 The dependency is enabled first, and its classes are visible to your plugin, so you can call its public API
-directly. A plugin cannot be unloaded while another one still depends on it.
+directly. A plugin cannot be unloaded while another one still depends on it. When its jar is replaced, Kiln
+takes the plugins that depend on it out as well and loads them again with it, so they see the new code.
 
 ## What the server owner sees
 

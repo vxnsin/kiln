@@ -133,7 +133,7 @@ public final class PluginManager {
         }
         List<String> dependents = dependents(name);
         if (!dependents.isEmpty()) {
-            throw new IllegalStateException(String.join(", ", dependents) + " still need it");
+            throw new IllegalStateException(String.join(", ", dependents) + (dependents.size() == 1 ? " still needs it" : " still need it"));
         }
         loaded.remove(name);
         release(plugin);
