@@ -3,6 +3,7 @@ package dev.vensin.kiln.server.plugin;
 import dev.vensin.kiln.api.Events;
 import dev.vensin.kiln.api.Kiln;
 import dev.vensin.kiln.api.Messages;
+import dev.vensin.kiln.api.Network;
 import dev.vensin.kiln.api.PluginInfo;
 import dev.vensin.kiln.api.Tasks;
 import dev.vensin.kiln.api.Worlds;
@@ -54,6 +55,7 @@ final class PluginContext implements Kiln {
     private final PluginWorlds worlds;
     private final PluginTasks tasks;
     private final PluginMessages messages;
+    private final PluginNetwork network;
 
     PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, PluginServices services) {
         this.info = info;
@@ -70,6 +72,7 @@ final class PluginContext implements Kiln {
         this.node = EventNode.all("plugin-" + info.name());
         this.events = new PluginEvents(node, timing);
         this.messages = new PluginMessages(loader, folder, services.language(), logger);
+        this.network = new PluginNetwork(services.network(), info.name(), timing);
         MinecraftServer.getGlobalEventHandler().addChild(node);
     }
 
@@ -110,9 +113,15 @@ final class PluginContext implements Kiln {
         return messages;
     }
 
+    @Override
+    public Network network() {
+        return network;
+    }
+
     /** Takes back everything the plugin registered through this context. */
     void close() {
         tasks.cancelAll();
+        network.close();
         worlds.closeAll();
         MinecraftServer.getGlobalEventHandler().removeChild(node);
         commands.forEach(MinecraftServer.getCommandManager()::unregister);

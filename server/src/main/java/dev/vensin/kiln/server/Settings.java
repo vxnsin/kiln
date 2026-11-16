@@ -17,7 +17,7 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                        String maintenanceMotd, int maxPlayers, String world, boolean watchPlugins, String name,
                        String colorFrom, String colorTo, int healthPort, int stopWhenEmpty, String language,
                        String packFile, String packHost, int packPort, String packUrl, boolean packRequired,
-                       String packPrompt, String storage, String redisUri, String mongoUri) {
+                       String packPrompt, String storage, String redisUri, String mongoUri, String serverId) {
 
     private static final String DEFAULTS = "kiln.yml";
 
@@ -63,9 +63,21 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                 values.text("resource-pack.prompt", ""),
                 values.text("storage.type", "files").toLowerCase(Locale.ROOT),
                 values.text("storage.redis", "redis://localhost:6379"),
-                values.text("storage.mongodb", "mongodb://localhost:27017/kiln"));
+                values.text("storage.mongodb", "mongodb://localhost:27017/kiln"),
+                values.text("server-id", "").isBlank() ? machineName(environment) : values.text("server-id", ""));
     }
 
+
+    /** In a container the hostname is the container's id, which is unique and stable for its lifetime. */
+    private static String machineName(Function<String, String> environment) {
+        for (String variable : new String[] {"HOSTNAME", "COMPUTERNAME"}) {
+            String name = environment.apply(variable);
+            if (name != null && !name.isBlank()) {
+                return name.toLowerCase(Locale.ROOT);
+            }
+        }
+        return "server";
+    }
     private record Values(Map<String, Object> yaml, Function<String, String> environment) {
 
         String text(String key, String fallback) {

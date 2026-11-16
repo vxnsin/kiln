@@ -1,6 +1,7 @@
 package dev.vensin.kiln.server.command;
 
 import dev.vensin.kiln.server.console.InteractiveConsole;
+import dev.vensin.kiln.server.network.NetworkService;
 import dev.vensin.kiln.server.pack.ResourcePackHost;
 import dev.vensin.kiln.server.plugin.PluginManager;
 import java.io.IOException;
@@ -37,6 +38,8 @@ public final class KilnCommand {
         HELP.put("load", "load jars that were added to the folder");
         HELP.put("unload [plugin]", "take a plugin out");
         HELP.put("players", "who is online");
+        HELP.put("servers", "every server in the network and its players");
+        HELP.put("find [player]", "which server a player is on");
         HELP.put("performance", "ticks, memory, CPU and what the world holds (short: perf)");
         HELP.put("version", "the running version");
         HELP.put("update", "look for a newer release and fetch it");
@@ -56,23 +59,25 @@ public final class KilnCommand {
     private final Maintenance maintenance;
     private final String version;
     private final ResourcePackHost pack;
+    private final NetworkService network;
     private final Countdown countdown = new Countdown();
 
     private KilnCommand(Operators operators, Permissions permissions, PluginManager plugins, Maintenance maintenance,
-                        String version, ResourcePackHost pack) {
+                        String version, ResourcePackHost pack, NetworkService network) {
         this.operators = operators;
         this.permissions = permissions;
         this.plugins = plugins;
         this.maintenance = maintenance;
         this.version = version;
         this.pack = pack;
+        this.network = network;
     }
 
     public static KilnCommand register(CommandManager commands, Operators operators, Permissions permissions,
                                        PluginManager plugins,
                                 Performance performance, Maintenance maintenance, String version,
-                                ResourcePackHost pack) {
-        KilnCommand kiln = new KilnCommand(operators, permissions, plugins, maintenance, version, pack);
+                                ResourcePackHost pack, NetworkService network) {
+        KilnCommand kiln = new KilnCommand(operators, permissions, plugins, maintenance, version, pack, network);
         Command root = new Command(NAME);
         root.setDefaultExecutor((sender, context) -> {
             if (permissions.has(sender, "kiln.help")) {
@@ -85,6 +90,8 @@ public final class KilnCommand {
                 kiln.admin("help", "kiln.help", (sender, context) -> kiln.help(sender)),
                 kiln.admin("plugins", "kiln.plugins", (sender, context) -> kiln.plugins(sender)),
                 kiln.admin("players", "kiln.players", (sender, context) -> kiln.players(sender)),
+                kiln.admin("servers", "kiln.servers", (sender, context) -> kiln.servers(sender)),
+                kiln.findCommand(),
                 kiln.withPlugin("reload", kiln::reload),
                 kiln.admin("load", "kiln.load", (sender, context) -> MinecraftServer.getSchedulerManager()
                         .scheduleNextTick(() -> kiln.load(sender))),
@@ -426,5 +433,32 @@ public final class KilnCommand {
         } catch (IOException e) {
             Chat.error(sender, "Could not read the resource pack: " + e.getMessage());
         }
+    }
+
+    private void servers(CommandSender sender) {
+        var servers = network.servers();
+        int players = servers.stream().mapToInt(server -> server.players().size()).sum();
+        Chat.say(sender, "<white>" + servers.size() + (servers.size() == 1 ? " server" : " servers") + ", " + players
+                + (players == 1 ? " player" : " players") + "</white>");
+        for (var server : servers) {
+            String self = server.id().equals(network.serverId()) ? " <gold>(this one)</gold>" : "";
+            Chat.item(sender, "<white>" + MiniMessage.miniMessage().escapeTags(server.id()) + "</white>" + self
+                    + " <gray>" + server.players().size() + "/" + server.maxPlayers()
+                    + (server.players().isEmpty() ? "" : " · " + String.join(", ", server.players())) + "</gray>");
+        }
+    }
+
+    private Command findCommand() {
+        ArgumentWord player = ArgumentType.Word("player");
+        Command command = admin("find", "kiln.find",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln find [player]</gray>"));
+        command.addSyntax((sender, context) -> {
+            String name = context.get(player);
+            Chat.say(sender, network.serverOf(name)
+                    .map(server -> "<white>" + name + "</white> <gray>is on</gray> <white>"
+                            + MiniMessage.miniMessage().escapeTags(server) + "</white>")
+                    .orElse("<gray>" + name + " is not online anywhere.</gray>"));
+        }, player);
+        return command;
     }
 }

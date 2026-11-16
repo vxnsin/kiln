@@ -40,15 +40,19 @@ public final class RespClient implements AutoCloseable {
         }
     }
 
-    /** Blocks forever on a second connection and hands every message on the channel to the listener. */
-    public void subscribe(String channel, MessageListener listener) throws IOException {
-        RespClient subscriber = new RespClient(uri);
-        subscriber.connect(0);
-        subscriber.write(new String[] {"SUBSCRIBE", channel});
-        subscriber.read();
-        while (true) {
-            if (subscriber.read() instanceof List<?> message && message.size() == 3 && "message".equals(message.get(0))) {
-                listener.accept(String.valueOf(message.get(1)), String.valueOf(message.get(2)));
+    /**
+     * Blocks on a second connection and hands every message on channels matching the pattern to the listener,
+     * until the connection breaks.
+     */
+    public void subscribe(String pattern, MessageListener listener) throws IOException {
+        try (RespClient subscriber = new RespClient(uri)) {
+            subscriber.connect(0);
+            subscriber.write(new String[] {"PSUBSCRIBE", pattern});
+            subscriber.read();
+            while (true) {
+                if (subscriber.read() instanceof List<?> message && message.size() == 4 && "pmessage".equals(message.get(0))) {
+                    listener.accept(String.valueOf(message.get(2)), String.valueOf(message.get(3)));
+                }
             }
         }
     }

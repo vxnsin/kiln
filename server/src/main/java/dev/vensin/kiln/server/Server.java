@@ -11,6 +11,9 @@ import dev.vensin.kiln.server.console.ConsoleInput;
 import dev.vensin.kiln.server.console.InteractiveConsole;
 import dev.vensin.kiln.server.console.StartReport;
 import dev.vensin.kiln.server.console.Terminal;
+import dev.vensin.kiln.server.network.LocalBus;
+import dev.vensin.kiln.server.network.NetworkService;
+import dev.vensin.kiln.server.network.RedisBus;
 import dev.vensin.kiln.server.pack.ResourcePackHost;
 import dev.vensin.kiln.server.plugin.PluginManager;
 import dev.vensin.kiln.server.plugin.PluginServices;
@@ -123,6 +126,9 @@ final class Server {
                 + Ansi.DOT + " port " + settings.port());
 
         report.beginQuietly("Storage").ok(storage.describe());
+        NetworkService network = new NetworkService(storage instanceof RedisDriver redis ? new RedisBus(redis.uri())
+                : new LocalBus(), settings.serverId(), settings.maxPlayers());
+        report.beginQuietly("Network").ok(network.describe());
 
         StartReport.Step world = report.begin("World", "preparing the default world");
         WorldFiles worlds = new WorldFiles(Path.of("worlds"));
@@ -168,7 +174,7 @@ final class Server {
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
         PluginServices services = new PluginServices(operators, permissions, playerData, worlds, settings.language(),
-                storage);
+                storage, network);
         PluginManager plugins = new PluginManager(Path.of("plugins"), services);
         performance.plugins(services.timings(), () -> plugins.loaded().stream().map(loaded -> loaded.info().name()).toList());
         plugins.loadNew();
@@ -176,7 +182,7 @@ final class Server {
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
         KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, permissions, plugins,
-                performance, maintenance, version, pack);
+                performance, maintenance, version, pack, network);
         if (settings.watchPlugins()) {
             watch(plugins, kiln);
         }
@@ -188,6 +194,7 @@ final class Server {
         if (settings.stopWhenEmpty() > 0) {
             new EmptyShutdown(Duration.ofSeconds(settings.stopWhenEmpty())).register(events);
         }
+        network.start();
         ready.set(true);
         opening.ok(report.elapsed() + " " + Ansi.DOT + " type kiln for help");
         report.done();

@@ -48,6 +48,9 @@ storage:
   redis: "redis://localhost:6379"
   mongodb: "mongodb://localhost:27017/kiln"
 
+# This server's name among other Kiln servers sharing the same Redis. Empty: the machine or container name.
+server-id: ""
+
 # A resource pack for every player. Drop pack.zip next to the server and it is sent on join; no file, no pack.
 resource-pack:
   file: pack.zip

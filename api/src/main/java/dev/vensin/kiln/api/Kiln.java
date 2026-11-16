@@ -34,6 +34,9 @@ public interface Kiln {
     /** Translated texts from the plugin's lang folder, picked by each player's client language. */
     Messages messages();
 
+    /** Messages to the same plugin on other servers, and who is online where. */
+    Network network();
+
     /** plugins/&lt;name&gt;/, created on first use. */
     Path dataFolder();
 

@@ -31,6 +31,9 @@ memory.
   saved when they leave, as readable JSON files.
 - **Storage you can switch.** Player data and plugin tables go to JSON files by default. One line in
   `kiln.yml` moves them to Redis, Valkey, Dragonfly or MongoDB, and no plugin has to change for it.
+- **Servers that know each other.** With Redis or Dragonfly as storage, Kiln servers form a network on their
+  own: `/kiln servers` lists all of them with their players, `/kiln find <player>` says where someone is, and
+  a plugin sends messages to itself on every other server with `kiln.network().publish(...)`.
 - **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and Kiln
   picks the file that matches each player's Minecraft language. Server owners can edit the texts in
   `plugins/<name>/lang/` without touching the jar.
@@ -108,6 +111,7 @@ Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kil
 | `/kiln reload <plugin>`, `load`, `unload <plugin>` | Swap, add or remove plugins on the running server |
 | `/kiln performance` (`perf`) | Ticks, memory, CPU, the world and each plugin's time per tick |
 | `/kiln players` | Who is online |
+| `/kiln servers`, `find <player>` | Every server in the network and who is where |
 | `/kiln kick <player> [reason]` | Send a player away with a clean screen |
 | `/kiln say <message>` | Announce something to everyone |
 | `/kiln maintenance on`, `off`, `allow <name>`, `deny <name>` | Let only operators and allowed players in |
@@ -131,6 +135,7 @@ Everything a round server needs is a setting:
 | `world` | `KILN_WORLD` | The map players land in, from `worlds/` |
 | `velocity-secret` | `KILN_VELOCITY_SECRET` | Accept players only through your Velocity proxy |
 | `storage.type`, `storage.redis` | `KILN_STORAGE_TYPE`, `KILN_STORAGE_REDIS` | Keep data in Redis or Dragonfly, so every round server sees the same players |
+| `server-id` | `KILN_SERVER_ID` | The name in `/kiln servers`; in a container the container name by default |
 
 Every option in `kiln.yml` works this way: `KILN_` plus the name in capitals with underscores. A variable wins
 over the file, so one image can run any number of differently configured servers.
@@ -215,6 +220,7 @@ What a plugin gets from Kiln:
 | `kiln.commands(...)` | Registers commands that go away with the plugin |
 | `kiln.playerData(name, type, fresh)` | A value per player, loaded on join and saved on leave |
 | `kiln.store().table(name, type)` | Key-value storage for everything that is not per player |
+| `kiln.network().publish(channel, message)` | Reach the same plugin on every server; `subscribe` to listen |
 | `kiln.worlds().open(name)` | A fresh copy of a world from `worlds/`, closed again when the plugin goes |
 | `kiln.tasks().every(interval, action)` | Timers that stop when the plugin is unloaded or swapped |
 | `kiln.messages().send(player, key, ...)` | Texts from `lang/<language>.yml`, in the language of the player's client |

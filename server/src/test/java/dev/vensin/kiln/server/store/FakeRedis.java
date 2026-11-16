@@ -14,13 +14,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Just enough of a Redis server for the client tests: AUTH, SELECT, PING, GET, SET, DEL and a one-page SCAN. */
-final class FakeRedis implements AutoCloseable {
+public final class FakeRedis implements AutoCloseable {
 
-    final Map<String, String> data = new ConcurrentHashMap<>();
-    final List<String> commands = new CopyOnWriteArrayList<>();
+    public final Map<String, String> data = new ConcurrentHashMap<>();
+    public final List<String> commands = new CopyOnWriteArrayList<>();
+    private static final String CRLF = "\r\n";
+    private final Map<OutputStream, String> subscribers = new ConcurrentHashMap<>();
     private final ServerSocket server = new ServerSocket(0);
 
-    FakeRedis() throws IOException {
+    public FakeRedis() throws IOException {
         Thread.ofPlatform().daemon().start(() -> {
             while (!server.isClosed()) {
                 try {
@@ -33,7 +35,7 @@ final class FakeRedis implements AutoCloseable {
         });
     }
 
-    int port() {
+    public int port() {
         return server.getLocalPort();
     }
 
@@ -47,6 +49,13 @@ final class FakeRedis implements AutoCloseable {
                     return;
                 }
                 commands.add(String.join(" ", command));
+                if (command.getFirst().equals("PSUBSCRIBE")) {
+                    subscribers.put(out, command.get(1));
+                    out.write(("*3" + CRLF + bulk("psubscribe") + bulk(command.get(1)) + ":1" + CRLF)
+                            .getBytes(StandardCharsets.UTF_8));
+                    out.flush();
+                    continue;
+                }
                 out.write(answer(command).getBytes(StandardCharsets.UTF_8));
                 out.flush();
             }
@@ -64,6 +73,7 @@ final class FakeRedis implements AutoCloseable {
                 yield "+OK\r\n";
             }
             case "PING" -> "+PONG\r\n";
+            case "PUBLISH" -> ":" + publish(command.get(1), command.get(2)) + CRLF;
             case "GET" -> bulk(data.get(command.get(1)));
             case "DEL" -> ":" + (data.remove(command.get(1)) != null ? 1 : 0) + "\r\n";
             case "SCAN" -> {
@@ -77,6 +87,26 @@ final class FakeRedis implements AutoCloseable {
         };
     }
 
+
+    private int publish(String channel, String message) {
+        int delivered = 0;
+        for (Map.Entry<OutputStream, String> subscriber : subscribers.entrySet()) {
+            String pattern = subscriber.getValue();
+            if (channel.startsWith(pattern.substring(0, pattern.length() - 1))) {
+                try {
+                    synchronized (subscriber.getKey()) {
+                        subscriber.getKey().write(("*4\r\n" + bulk("pmessage") + bulk(pattern) + bulk(channel) + bulk(message))
+                                .getBytes(StandardCharsets.UTF_8));
+                        subscriber.getKey().flush();
+                    }
+                    delivered++;
+                } catch (IOException gone) {
+                    subscribers.remove(subscriber.getKey());
+                }
+            }
+        }
+        return delivered;
+    }
     private static String bulk(String value) {
         if (value == null) {
             return "$-1\r\n";
