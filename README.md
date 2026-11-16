@@ -291,6 +291,7 @@ permissions.yml groups and who is in them
 plugins/        plugin jars and their config folders
 worlds/         Minecraft worlds, one folder each
 data/           stored data, one folder per plugin
+logs/           latest.log and one file per day for two weeks
 ```
 
 ## Credits

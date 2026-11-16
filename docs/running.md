@@ -28,6 +28,7 @@ Type `kiln` in the console for every command. `stop` or Ctrl+C saves player data
 | `plugins/.loaded/` | Copies Kiln loads from, so jars can be replaced while it runs | no |
 | `worlds/` | Maps, one folder each, never written to by Kiln | yes |
 | `data/` | Player data and plugin tables when storage is `files` | yes |
+| `logs/` | `latest.log` and one compressed file per day, kept for two weeks | if you need them |
 | `pack.zip`, `server-icon.png` | Resource pack and server list icon, both optional | yes |
 
 ## One server per round

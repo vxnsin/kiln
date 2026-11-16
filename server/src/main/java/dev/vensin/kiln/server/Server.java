@@ -258,6 +258,11 @@ final class Server {
         network.start();
         ready.set(true);
         opening.ok(report.elapsed() + " " + Ansi.DOT + " type kiln for help");
+        LoggerFactory.getLogger("kiln.startup").info("Kiln {} ready on port {} in {}; storage {}; plugins: {}{}", version,
+                settings.port(), report.elapsed(), storage.describe(),
+                plugins.loaded().stream().map(p -> p.info().name() + " " + p.info().version()).toList(),
+                plugins.failures().isEmpty() ? "" : "; failed: " + plugins.failures().stream()
+                        .map(f -> f.name() + " (" + f.reason() + ")").toList());
         report.done();
         plugins.failures().stream().filter(failure -> failure.cause() != null)
                 .forEach(failure -> LOG.error("Plugin {} failed", failure.name(), failure.cause()));

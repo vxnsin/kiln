@@ -1,10 +1,26 @@
 <configuration>
   <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
   <appender name="console" class="dev.vensin.kiln.server.console.ConsoleAppender"/>
+  <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/latest.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+      <maxHistory>14</maxHistory>
+    </rollingPolicy>
+    <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <charset>UTF-8</charset>
+      <layout class="dev.vensin.kiln.server.console.FileLayout"/>
+    </encoder>
+  </appender>
+  <!-- The startup block is drawn straight onto the console; this logger puts a summary of it into the file. -->
+  <logger name="kiln.startup" additivity="false">
+    <appender-ref ref="file"/>
+  </logger>
   <logger name="net.minestom" level="WARN"/>
   <logger name="org.jline" level="WARN"/>
   <logger name="org.mongodb" level="WARN"/>
   <root level="INFO">
     <appender-ref ref="console"/>
+    <appender-ref ref="file"/>
   </root>
 </configuration>
