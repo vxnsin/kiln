@@ -24,8 +24,8 @@ memory.
 ### While you build
 
 - **Plugins you can swap while it runs.** Replace a jar in `plugins/` and the new build takes over within a
-  second, no restart and no command. Delete one and it is unloaded, add one and it is loaded. Player data is
-  saved in between, and a build that fails to start leaves the previous version running.
+  second, no restart and no command. Delete one and it is unloaded, add one and it is loaded. Player data is saved
+  in between, and a build that fails to start leaves the previous version running.
 - **A plugin project in one line.** `java -jar kiln.jar new my-plugin` creates a Gradle project that builds
   straight into the running server. Save, build, and the change is live.
 - **Which plugin is slow.** `/kiln performance` and the dashboard show the time each plugin spends per tick,
@@ -41,23 +41,22 @@ memory.
 
 - **A console worth looking at.** A pixel icon, every startup step with a spinner, plugins as a tree, and a
   prompt with history and tab completion.
-- **One command for the server itself.** Everything lives under `/kiln`, so plugins keep the rest of the
-  command space. Kick with a reason, announce, or stop after a countdown everyone can see.
+- **One command for the server itself.** Everything lives under `/kiln`, so plugins keep the rest of the command
+  space. Kick with a reason, announce, or stop after a countdown everyone can see.
 - **A live dashboard.** Turn on `web-port` and open it in a browser: ticks, memory, CPU, players and plugins,
   updated every two seconds.
-- **Permission groups.** Groups with inheritance and wildcards in `permissions.yml`. Every `/kiln` command
-  has its own permission, so a moderator can run maintenance without becoming operator.
+- **Permission groups.** Groups with inheritance and wildcards in `permissions.yml`. Every `/kiln` command has
+  its own permission, so a moderator can run maintenance without becoming operator.
 - **Bans with a reason and an end.** `/kiln ban griefer 7d broke the spawn` keeps someone out with a clean
   screen that says why and until when. With Redis, a ban counts on every server.
-- **Maintenance and whitelist.** `/kiln maintenance on` (or `/kiln whitelist on`) lets in only operators and
-  the players you allow. The server list
-  says so, and the setting survives a restart.
-- **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message, every
-  disconnect screen, and the tab list. Chat lines, join and leave messages show group prefixes from
-  `permissions.yml` and can each be restyled or switched off. Kiln's own screens
-  speak English or German, following `language` in `kiln.yml`.
-- **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
-  screen instead of a timeout.
+- **Maintenance and whitelist.** `/kiln maintenance on` (or `/kiln whitelist on`) lets in only operators and the
+  players you allow. The server list says so, and the setting survives a restart.
+- **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message, every disconnect
+  screen, and the tab list. Chat lines, join and leave messages show group prefixes from `permissions.yml` and can
+  each be restyled or switched off. Kiln's own screens speak English or German, following `language` in
+  `kiln.yml`.
+- **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting" screen
+  instead of a timeout.
 - **A face in the server list.** The kiln pixel icon by default, or your own `server-icon.png`.
 - **A resource pack without a web host.** Drop `pack.zip` next to the server and it is sent to everyone who
   joins.
@@ -68,11 +67,11 @@ memory.
   hands out a fresh copy that is never written back, so each round starts on the same map.
 - **Storage you can switch.** JSON files by default, Redis, Valkey, Dragonfly or MongoDB with one line in
   `kiln.yml`. No plugin has to change for it.
-- **Servers that know each other.** With Redis as storage, Kiln servers find each other: `/kiln servers`
-  lists all of them with their players, `/kiln find <player>` says where someone is, and plugins send
-  messages to themselves on every other server.
-- **A network without a proxy.** Give each server a `public-address` and `/kiln send <player> <server>`
-  moves players between them with Minecraft's own transfer. Plugins do the same with `kiln.network().send`.
+- **Servers that know each other.** With Redis as storage, Kiln servers find each other: `/kiln servers` lists
+  all of them with their players, `/kiln find <player>` says where someone is, and plugins send messages to
+  themselves on every other server.
+- **A network without a proxy.** Give each server a `public-address` and `/kiln send <player> <server>` moves
+  players between them with Minecraft's own transfer. Plugins do the same with `kiln.network().send`.
 - **Behind a proxy.** Put your Velocity forwarding secret into `kiln.yml`.
 - **Made for containers.** Every setting can come from an environment variable, there is a health check, a
   Dockerfile, and a server can shut itself down when the round is over.
@@ -90,10 +89,10 @@ Kiln is for servers that are a game rather than a world: lobbies, minigames, eve
 training and learning maps. They do not need survival mechanics. They need to start fast, stay small and be
 put together from parts.
 
-- **A server per round.** Three seconds and 100 MB make it practical to start a fresh server for every match
-  and throw it away afterwards, instead of resetting a long-running one.
-- **Parts instead of one binary.** With plain Minestom every game is its own program. With Kiln a lobby, a
-  game mode and a stats plugin are three jars you combine per server.
+- **A server per round.** Three seconds and 100 MB make it practical to start a fresh server for every match and
+  throw it away afterwards, instead of resetting a long-running one.
+- **Parts instead of one binary.** With plain Minestom every game is its own program. With Kiln a lobby, a game
+  mode and a stats plugin are three jars you combine per server.
 - **Data that is just there.** Coins, stats and settings per player without writing load and save code.
 
 If you want survival with mobs, farms and redstone, use [Paper](https://papermc.io). Minestom has none of
