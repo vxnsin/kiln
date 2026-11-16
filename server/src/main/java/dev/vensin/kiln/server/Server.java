@@ -227,6 +227,9 @@ final class Server {
             chatStyle.update(ChatStyle.from(fresh));
             live.set(fresh);
         });
+        if (!settings.dailyRestart().isBlank()) {
+            kiln.dailyStop(settings.dailyRestart());
+        }
         if (settings.watchPlugins()) {
             watch(plugins, kiln);
         }

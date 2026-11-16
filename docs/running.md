@@ -89,6 +89,12 @@ forwarding secret on every Kiln server. Players then only get in through the pro
   and each plugin's time per tick
 - `/kiln profile 30` when something is slow and you want to know where
 
+## Daily restart
+
+`daily-restart: "04:00"` in `kiln.yml` stops the server every day at four, after a five-minute countdown
+everyone online can see. Kiln only stops; whatever started it brings it back, for example a container restart
+policy, a systemd unit with `Restart=always`, or a loop in your start script.
+
 ## Updating
 
 `/kiln update` looks for a newer release on GitHub and downloads it next to the running jar. Stop the

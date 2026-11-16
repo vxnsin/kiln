@@ -13,6 +13,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -84,6 +87,7 @@ public final class KilnCommand {
     private final Bans bans;
     private ConfigReload configReload = () -> { };
     private final Countdown countdown = new Countdown();
+    private static final Duration DAILY_WARNING = Duration.ofMinutes(5);
 
     private KilnCommand(Operators operators, Permissions permissions, PluginManager plugins, Maintenance maintenance,
                         String version, ResourcePackHost pack, NetworkService network, Bans bans) {
@@ -609,6 +613,40 @@ public final class KilnCommand {
         void run() throws IOException;
     }
 
+
+    /** Runs the stop countdown once a day at the given local time, for example "04:00". */
+    public void dailyStop(String time) {
+        LocalTime at;
+        try {
+            at = LocalTime.parse(time);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("daily-restart must look like 04:00, not " + time);
+        }
+        Thread.ofPlatform().daemon().name("daily-restart").start(() -> {
+            while (true) {
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime next = now.toLocalDate().atTime(at).minus(DAILY_WARNING);
+                if (!next.isAfter(now)) {
+                    next = next.plusDays(1);
+                }
+                try {
+                    Thread.sleep(Duration.between(now, next));
+                } catch (InterruptedException e) {
+                    return;
+                }
+                var console = MinecraftServer.getCommandManager().getConsoleSender();
+                MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                    countdown.start((int) DAILY_WARNING.toSeconds(), "daily restart", done -> stop(console, done));
+                    broadcast("<yellow>The daily restart is in " + Countdown.time((int) DAILY_WARNING.toSeconds()) + ".</yellow>");
+                });
+                try {
+                    Thread.sleep(DAILY_WARNING.plusMinutes(1));
+                } catch (InterruptedException e) {
+                    return;
+                }
+            }
+        });
+    }
     public void onConfigReload(ConfigReload action) {
         this.configReload = action;
     }

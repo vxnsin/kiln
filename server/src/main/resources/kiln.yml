@@ -60,6 +60,10 @@ void-rescue: true
 # data is still saved when players leave and when the server stops.
 autosave: 300
 
+# Stop every day at this time, for example "04:00", after a five-minute countdown everyone can see. Your host or
+# container brings it back up. Empty: no daily stop.
+daily-restart: ""
+
 # Swap a plugin as soon as its jar in plugins/ changes, load new jars and unload removed ones.
 # Handy while developing; turn it off if you would rather decide yourself with kiln reload.
 watch-plugins: true
