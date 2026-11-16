@@ -9,21 +9,6 @@ public final class StartReport {
     private static final String AUTHOR_URL = "https://github.com/vxnsin";
     private static final String REPO_URL = "https://github.com/vxnsin/kiln";
     private static final int LABEL_WIDTH = 8;
-    /** Pixel rows, two per text line; each letter is a color from ICON_COLORS, anything else is empty. */
-    private static final String[] ICON = {
-        "...bbbb...",
-        "..bBbbBb..",
-        ".bbbbbbbb.",
-        ".bBbddbBb.",
-        ".bbdoodbb.",
-        ".bbdyydbb.",
-        ".bBdyydBb.",
-        ".bbdoodbb.",
-        "gggggggggg",
-        ".gggggggg.",
-    };
-    private static final String ICON_PIXELS = "bBdoyg";
-    private static final int[] ICON_COLORS = {173, 131, 52, 208, 220, 242};
     private static final String[] SPINNER = {
         "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
     };
@@ -58,8 +43,8 @@ public final class StartReport {
             return "";
         }
         StringBuilder line = new StringBuilder();
-        String top = ICON[row * 2];
-        String bottom = ICON[row * 2 + 1];
+        String top = KilnIcon.PIXELS[row * 2];
+        String bottom = KilnIcon.PIXELS[row * 2 + 1];
         for (int column = 0; column < top.length(); column++) {
             line.append(Ansi.pixels(iconColor(top.charAt(column)), iconColor(bottom.charAt(column))));
         }
@@ -67,8 +52,8 @@ public final class StartReport {
     }
 
     private static int iconColor(char pixel) {
-        int index = ICON_PIXELS.indexOf(pixel);
-        return index < 0 ? 0 : ICON_COLORS[index];
+        int index = KilnIcon.KEYS.indexOf(pixel);
+        return index < 0 ? 0 : KilnIcon.TERMINAL[index];
     }
 
     /** Shows a spinner while the step runs when a person is watching; otherwise only the result line appears. */

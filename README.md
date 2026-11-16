@@ -51,6 +51,7 @@ memory.
   `permissions.yml` and can each be restyled or switched off.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
   screen instead of a timeout.
+- **A face in the server list.** The kiln pixel icon by default, or your own `server-icon.png`.
 - **A resource pack without a web host.** Drop `pack.zip` next to the server and it is sent to everyone who
   joins.
 

@@ -10,6 +10,7 @@ import dev.vensin.kiln.server.command.Maintenance;
 import dev.vensin.kiln.server.console.Ansi;
 import dev.vensin.kiln.server.console.ConsoleInput;
 import dev.vensin.kiln.server.console.InteractiveConsole;
+import dev.vensin.kiln.server.console.KilnIcon;
 import dev.vensin.kiln.server.console.StartReport;
 import dev.vensin.kiln.server.console.Terminal;
 import dev.vensin.kiln.server.network.LocalBus;
@@ -27,6 +28,8 @@ import dev.vensin.kiln.server.store.RedisDriver;
 import dev.vensin.kiln.server.store.StorageDriver;
 import dev.vensin.kiln.server.store.PlayerDataManager;
 import dev.vensin.kiln.server.world.WorldFiles;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
@@ -37,6 +40,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.imageio.ImageIO;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
@@ -297,11 +301,17 @@ final class Server {
         });
         events.addListener(PlayerDisconnectEvent.class, event ->
                 LOG.info("{} {} left {}", Ansi.dim(Ansi.LEAVE), event.getPlayer().getUsername(), online(-1)));
-        events.addListener(ServerListPingEvent.class, event -> event.setStatus(Status.builder(event.getStatus())
-                .description(MiniMessage.miniMessage().deserialize(!ready.get() ? STARTING_MOTD
-                        : maintenance.enabled() ? settings.maintenanceMotd() : settings.motd()))
-                .playerInfo(MinecraftServer.getConnectionManager().getOnlinePlayers().size(), settings.maxPlayers())
-                .build()));
+        byte[] icon = serverIcon();
+        events.addListener(ServerListPingEvent.class, event -> {
+            Status.Builder status = Status.builder(event.getStatus())
+                    .description(MiniMessage.miniMessage().deserialize(!ready.get() ? STARTING_MOTD
+                            : maintenance.enabled() ? settings.maintenanceMotd() : settings.motd()))
+                    .playerInfo(MinecraftServer.getConnectionManager().getOnlinePlayers().size(), settings.maxPlayers());
+            if (icon != null) {
+                status.favicon(icon);
+            }
+            event.setStatus(status.build());
+        });
     }
 
 
@@ -312,6 +322,26 @@ final class Server {
             case "mongodb" -> new MongoDriver(settings.mongoUri());
             default -> throw new IllegalArgumentException("storage.type must be files, redis or mongodb");
         };
+    }
+
+    /** server-icon.png next to the server, 64 by 64 pixels like vanilla expects; without one, the kiln. */
+    private static byte[] serverIcon() {
+        Path file = Path.of("server-icon.png");
+        if (!Files.isRegularFile(file)) {
+            return KilnIcon.png();
+        }
+        try {
+            byte[] png = Files.readAllBytes(file);
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(png));
+            if (image == null || image.getWidth() != 64 || image.getHeight() != 64) {
+                LOG.warn("server-icon.png must be a 64 x 64 PNG, it is ignored");
+                return null;
+            }
+            return png;
+        } catch (IOException e) {
+            LOG.warn("server-icon.png could not be read: {}", e.getMessage());
+            return null;
+        }
     }
     private static boolean portFree(int port) {
         try (ServerSocket socket = new ServerSocket(port)) {
