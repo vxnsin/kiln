@@ -9,10 +9,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** What the server shares with every plugin. Timings outlive a swap, so a plugin keeps its history. */
 public record PluginServices(Operators operators, Permissions permissions, PlayerDataManager playerData,
-                             WorldFiles worlds, Map<String, PluginTiming> timings) {
+                             WorldFiles worlds, String language, Map<String, PluginTiming> timings) {
 
-    public PluginServices(Operators operators, Permissions permissions, PlayerDataManager playerData, WorldFiles worlds) {
-        this(operators, permissions, playerData, worlds, new ConcurrentHashMap<>());
+    public PluginServices(Operators operators, Permissions permissions, PlayerDataManager playerData, WorldFiles worlds,
+                          String language) {
+        this(operators, permissions, playerData, worlds, language, new ConcurrentHashMap<>());
     }
 
     PluginTiming timing(String plugin) {

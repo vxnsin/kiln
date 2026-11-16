@@ -1,2 +1,2 @@
-# Shown to a joining player (MiniMessage). <name> and <visits> are filled in.
-greeting: "<gold>Welcome, <name>!</gold> <gray>This is visit number <visits>.</gray>"
+# Tell everyone online when a player joins for the first time.
+announce-first-visit: true

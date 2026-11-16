@@ -31,6 +31,9 @@ public interface Kiln {
     /** Timers that stop on their own when the plugin is unloaded or swapped. */
     Tasks tasks();
 
+    /** Translated texts from the plugin's lang folder, picked by each player's client language. */
+    Messages messages();
+
     /** plugins/&lt;name&gt;/, created on first use. */
     Path dataFolder();
 

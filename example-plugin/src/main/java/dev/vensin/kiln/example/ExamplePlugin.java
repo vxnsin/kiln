@@ -3,8 +3,8 @@ package dev.vensin.kiln.example;
 import dev.vensin.kiln.api.Kiln;
 import dev.vensin.kiln.api.Plugin;
 import dev.vensin.kiln.api.store.PlayerData;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerSpawnEvent;
@@ -18,7 +18,7 @@ public final class ExamplePlugin implements Plugin {
 
     @Override
     public void enable(Kiln kiln) {
-        String greeting = String.valueOf(kiln.config().getOrDefault("greeting", "<gold>Welcome, <name>!</gold>"));
+        boolean announce = !Boolean.FALSE.equals(kiln.config().get("announce-first-visit"));
         PlayerData<Visits> visits = kiln.playerData("visits", Visits.class, Visits::new);
 
         kiln.events().on(PlayerSpawnEvent.class, event -> {
@@ -28,19 +28,21 @@ public final class ExamplePlugin implements Plugin {
             Player player = event.getPlayer();
             Visits own = visits.of(player);
             own.count++;
-            player.sendMessage(MiniMessage.miniMessage().deserialize(greeting,
-                    Placeholder.unparsed("name", player.getUsername()),
-                    Placeholder.unparsed("visits", String.valueOf(own.count))));
+            if (own.count == 1 && announce) {
+                MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(online -> kiln.messages()
+                        .send(online, "first-visit", Placeholder.unparsed("name", player.getUsername())));
+            } else {
+                kiln.messages().send(player, "greeting", Placeholder.unparsed("name", player.getUsername()),
+                        Placeholder.unparsed("visits", String.valueOf(own.count)));
+            }
         });
 
         Command command = new Command("visits");
         command.setDefaultExecutor((sender, context) -> {
             if (sender instanceof Player player) {
-                player.sendMessage("Visits: " + visits.of(player).count);
+                kiln.messages().send(player, "visits", Placeholder.unparsed("visits", String.valueOf(visits.of(player).count)));
             }
         });
         kiln.commands(command);
-
-        kiln.logger().info("Greeting players with: {}", greeting);
     }
 }

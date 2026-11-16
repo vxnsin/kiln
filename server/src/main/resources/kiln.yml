@@ -26,6 +26,9 @@ maintenance-motd: "<gradient:#ff8700:#ffd700><bold>Under maintenance</bold></gra
 # Number shown as the player limit in the server list.
 max-players: 100
 
+# Language for plugin texts when a player's client language has no translation (two letters, like en or de).
+language: en
+
 # The world players land in when no plugin gives them one.
 #   flat   an endless flat grass world, enough to stand on and test
 #   none   plugins must set a spawning instance themselves

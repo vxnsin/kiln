@@ -29,6 +29,9 @@ memory.
   at startup. A plugin that fails shows up in red with the reason; the server keeps going.
 - **Player data.** One line gives a plugin a value per player. It is loaded while the player connects and
   saved when they leave, as readable JSON files.
+- **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and Kiln
+  picks the file that matches each player's Minecraft language. Server owners can edit the texts in
+  `plugins/<name>/lang/` without touching the jar.
 - **One command for the server itself.** `/kiln` with `plugins`, `reload`, `load`, `unload`, `players`, `performance`, `group`,
   `maintenance`, `version`, `update`, `op`, `deop` and `stop`, in the console with tab completion and in
   game for operators.
@@ -153,7 +156,8 @@ public final class HelloPlugin implements Plugin {
 }
 ```
 
-That is a complete plugin with saved data. The full version, with a config file and a command, is in
+That is a complete plugin with saved data. The full version, with a config file, a command and texts in English
+and German, is in
 [`example-plugin/`](example-plugin).
 
 Swapping works because Kiln knows what belongs to a plugin: listeners added with `kiln.events().on(...)`, commands
@@ -188,6 +192,7 @@ What a plugin gets from Kiln:
 | `kiln.store().table(name, type)` | Key-value storage for everything that is not per player |
 | `kiln.worlds().open(name)` | A fresh copy of a world from `worlds/`, closed again when the plugin goes |
 | `kiln.tasks().every(interval, action)` | Timers that stop when the plugin is unloaded or swapped |
+| `kiln.messages().send(player, key, ...)` | Texts from `lang/<language>.yml`, in the language of the player's client |
 | `kiln.config()` | `plugins/<name>/config.yml`, copied from the jar on first start |
 | `kiln.dataFolder()` | `plugins/<name>/` for the plugin's own files |
 | `kiln.logger()` | A logger whose lines are tagged with the plugin name |

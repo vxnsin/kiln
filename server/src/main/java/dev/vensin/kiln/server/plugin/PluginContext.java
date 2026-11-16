@@ -2,6 +2,7 @@ package dev.vensin.kiln.server.plugin;
 
 import dev.vensin.kiln.api.Events;
 import dev.vensin.kiln.api.Kiln;
+import dev.vensin.kiln.api.Messages;
 import dev.vensin.kiln.api.PluginInfo;
 import dev.vensin.kiln.api.Tasks;
 import dev.vensin.kiln.api.Worlds;
@@ -53,6 +54,7 @@ final class PluginContext implements Kiln {
     private final List<PlayerData<?>> data = new ArrayList<>();
     private final PluginWorlds worlds;
     private final PluginTasks tasks;
+    private final PluginMessages messages;
 
     PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, Path data, PluginServices services) {
         this.info = info;
@@ -68,6 +70,7 @@ final class PluginContext implements Kiln {
         this.logger = LoggerFactory.getLogger(info.name());
         this.node = EventNode.all("plugin-" + info.name());
         this.events = new PluginEvents(node, timing);
+        this.messages = new PluginMessages(loader, folder, services.language(), logger);
         MinecraftServer.getGlobalEventHandler().addChild(node);
     }
 
@@ -101,6 +104,11 @@ final class PluginContext implements Kiln {
     @Override
     public Tasks tasks() {
         return tasks;
+    }
+
+    @Override
+    public Messages messages() {
+        return messages;
     }
 
     /** Takes back everything the plugin registered through this context. */

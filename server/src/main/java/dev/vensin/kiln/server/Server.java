@@ -132,7 +132,7 @@ final class Server {
         StartReport.Step loading = report.beginQuietly("Plugins");
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
-        PluginServices services = new PluginServices(operators, permissions, playerData, worlds);
+        PluginServices services = new PluginServices(operators, permissions, playerData, worlds, settings.language());
         PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), services);
         performance.plugins(services.timings(), () -> plugins.loaded().stream().map(loaded -> loaded.info().name()).toList());
         plugins.loadNew();
