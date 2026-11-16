@@ -64,9 +64,9 @@ resource-pack:
   required: false
   prompt: ""
 
-# Port of a small HTTP endpoint for container platforms: GET /health answers 200 once the server takes players
-# and 503 before that, with player counts as JSON. 0 turns it off.
-health-port: 0
+# Port of a small web server: a live dashboard at /, GET /stats as JSON and GET /health for container
+# platforms (200 once players can join, 503 before). It shows counts, never player names. 0 turns it off.
+web-port: 0
 
 # Shut down this many seconds after the last player left, for servers that live for one round. 0 keeps it running.
 stop-when-empty: 0

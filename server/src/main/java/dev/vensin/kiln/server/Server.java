@@ -19,7 +19,7 @@ import dev.vensin.kiln.server.plugin.PluginManager;
 import dev.vensin.kiln.server.plugin.PluginServices;
 import dev.vensin.kiln.server.plugin.PluginWatcher;
 import dev.vensin.kiln.server.round.EmptyShutdown;
-import dev.vensin.kiln.server.round.HealthEndpoint;
+import dev.vensin.kiln.server.round.WebEndpoint;
 import dev.vensin.kiln.server.store.FileDriver;
 import dev.vensin.kiln.server.store.MongoDriver;
 import dev.vensin.kiln.server.store.RedisDriver;
@@ -117,8 +117,9 @@ final class Server {
             }
         });
         listen(events, settings, ready, maintenance);
-        if (settings.healthPort() > 0) {
-            new HealthEndpoint(ready::get, settings.maxPlayers()).start(settings.healthPort());
+        if (settings.webPort() > 0) {
+            new WebEndpoint(ready::get, new WebEndpoint.Identity(settings.name(), settings.serverId(), version,
+                    settings.maxPlayers()), performance).start(settings.webPort());
         }
         server.start(settings.host(), settings.port());
         engine.ok((proxied ? "behind Velocity" : settings.onlineMode() ? "online mode"

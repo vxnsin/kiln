@@ -16,50 +16,55 @@ part, written once, so a new project starts at the interesting bit.
   <img src="docs/console.svg" alt="Kiln starting in a terminal: pixel icon, version, startup steps and the plugin list" width="760">
 </p>
 
-On the machine it was written on, an empty Kiln starts in under three seconds and sits at about 80 MB of
+On the machine it was written on, an empty Kiln starts in about three seconds and uses around 100 MB of
 memory.
 
 ## What is in the box
 
-- **Plugins you can swap while it runs.** Jars in `plugins/` with a small `kiln-plugin.yml`. Replace a jar and
-  the new build takes over within a second, no restart and no command. Delete one and it is unloaded, add one
-  and it is loaded. Player data is saved in between. Prefer to decide yourself? Set `watch-plugins: false`
-  and use `kiln reload <name>`.
-  They load in dependency order and are listed
-  at startup. A plugin that fails shows up in red with the reason; the server keeps going.
-- **Player data.** One line gives a plugin a value per player. It is loaded while the player connects and
-  saved when they leave, as readable JSON files.
-- **Storage you can switch.** Player data and plugin tables go to JSON files by default. One line in
-  `kiln.yml` moves them to Redis, Valkey, Dragonfly or MongoDB, and no plugin has to change for it.
-- **Servers that know each other.** With Redis or Dragonfly as storage, Kiln servers form a network on their
-  own: `/kiln servers` lists all of them with their players, `/kiln find <player>` says where someone is, and
-  a plugin sends messages to itself on every other server with `kiln.network().publish(...)`.
-- **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and Kiln
-  picks the file that matches each player's Minecraft language. Server owners can edit the texts in
-  `plugins/<name>/lang/` without touching the jar.
-- **One command for the server itself.** Everything Kiln does lives under `/kiln`, so plugins keep the rest
-  of the command space. It works in the console with tab completion and in game for anyone with the
-  matching permission. `/kiln stop 60 update` shows everyone a countdown before the server goes down.
-- **One settings file.** `kiln.yml` is written on first start, with a comment on every option. It also holds
-  your server name and two colors, which every chat message and disconnect screen uses.
+### While you build
+
+- **Plugins you can swap while it runs.** Replace a jar in `plugins/` and the new build takes over within a
+  second, no restart and no command. Delete one and it is unloaded, add one and it is loaded. Player data is
+  saved in between.
+- **A plugin project in one line.** `java -jar kiln.jar new my-plugin` creates a Gradle project that builds
+  straight into the running server. Save, build, and the change is live.
+- **Which plugin is slow.** `/kiln performance` and the dashboard show the time each plugin spends per tick,
+  slowest first, next to tick time, memory, CPU and the world.
+- **Player data in one line.** A value per player, loaded while they connect and saved when they leave.
+- **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and each
+  player gets the file that matches their Minecraft language.
+
+### While it runs
+
+- **A console worth looking at.** A pixel icon, every startup step with a spinner, plugins as a tree, and a
+  prompt with history and tab completion.
+- **One command for the server itself.** Everything lives under `/kiln`, so plugins keep the rest of the
+  command space. Kick with a reason, announce, or stop after a countdown everyone can see.
+- **A live dashboard.** Turn on `web-port` and open it in a browser: ticks, memory, CPU, players and plugins,
+  updated every two seconds.
+- **Permission groups.** Groups with inheritance and wildcards in `permissions.yml`. Every `/kiln` command
+  has its own permission, so a moderator can run maintenance without becoming operator.
+- **Maintenance.** `/kiln maintenance on` lets in only operators and the players you allow. The server list
+  says so, and the setting survives a restart.
+- **Your name on it.** Server name and two colors in `kiln.yml` are used by every chat message and every
+  disconnect screen.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
-  screen, and the server list says so too.
-- **Which plugin is slow.** `/kiln performance` shows tick time, memory, CPU and the world, and below that the
-  time each plugin spends in its listeners and timers per tick, slowest first.
-- **Permission groups.** `permissions.yml` holds groups with permissions and inheritance, `build.*` covers
-  everything below it, and `/kiln group add <player> <group>` hands them out. Every `/kiln` command has its own
-  permission, so a moderator can get `kiln.maintenance` without becoming operator.
-- **Maintenance.** `/kiln maintenance on` lets in only operators and the players you allow. Everyone else
-  gets a clear screen, the server list shows it, and the setting survives a restart.
-- **Behind a proxy.** Put the forwarding secret of your Velocity proxy into `kiln.yml` and players come
-  through the proxy only.
-- **A resource pack without a web host.** Drop `pack.zip` next to the server. Kiln serves it, sends it to
-  everyone who joins and resends it with `/kiln pack` after you changed it.
-- **Worlds from files.** Drop a world saved in singleplayer or on a Paper server into `worlds/`. Every
-  `open` hands out a fresh copy that is never written back, so each round starts on the same map.
-- **A place to stand.** A flat default world, so the server is joinable before any plugin exists. Plugins
-  replace it by setting their own spawning instance.
-- **Mojang authentication, MiniMessage and logging** set up and out of the way.
+  screen instead of a timeout.
+- **A resource pack without a web host.** Drop `pack.zip` next to the server and it is sent to everyone who
+  joins.
+
+### When there are many
+
+- **Worlds from files.** Drop a world saved in singleplayer or on a Paper server into `worlds/`. Every `open`
+  hands out a fresh copy that is never written back, so each round starts on the same map.
+- **Storage you can switch.** JSON files by default, Redis, Valkey, Dragonfly or MongoDB with one line in
+  `kiln.yml`. No plugin has to change for it.
+- **Servers that know each other.** With Redis as storage, Kiln servers find each other: `/kiln servers`
+  lists all of them with their players, `/kiln find <player>` says where someone is, and plugins send
+  messages to themselves on every other server.
+- **Behind a proxy.** Put your Velocity forwarding secret into `kiln.yml`.
+- **Made for containers.** Every setting can come from an environment variable, there is a health check, a
+  Dockerfile, and a server can shut itself down when the round is over.
 
 Kiln sits on top of Minestom and does not fork it. Events, commands, instances and entities are plain
 Minestom, so its documentation applies unchanged.
@@ -70,7 +75,7 @@ Kiln is for servers that are a game rather than a world: lobbies, minigames, eve
 training and learning maps. They do not need survival mechanics. They need to start fast, stay small and be
 put together from parts.
 
-- **A server per round.** Three seconds and 80 MB make it practical to start a fresh server for every match
+- **A server per round.** Three seconds and 100 MB make it practical to start a fresh server for every match
   and throw it away afterwards, instead of resetting a long-running one.
 - **Parts instead of one binary.** With plain Minestom every game is its own program. With Kiln a lobby, a
   game mode and a stats plugin are three jars you combine per server.
@@ -130,7 +135,7 @@ Everything a round server needs is a setting:
 
 | Option | Environment variable | What it does |
 |---|---|---|
-| `health-port` | `KILN_HEALTH_PORT` | `GET /health` answers 200 once players can join, 503 before, with player counts as JSON |
+| `web-port` | `KILN_WEB_PORT` | A live dashboard at `/`, `GET /stats` as JSON, and `GET /health`: 200 once players can join, 503 before |
 | `stop-when-empty` | `KILN_STOP_WHEN_EMPTY` | Shuts down this many seconds after the last player left |
 | `world` | `KILN_WORLD` | The map players land in, from `worlds/` |
 | `velocity-secret` | `KILN_VELOCITY_SECRET` | Accept players only through your Velocity proxy |
@@ -140,7 +145,7 @@ Everything a round server needs is a setting:
 Every option in `kiln.yml` works this way: `KILN_` plus the name in capitals with underscores. A variable wins
 over the file, so one image can run any number of differently configured servers.
 
-The repository has a Dockerfile. It builds Kiln, turns the health endpoint on at port 8080 and keeps
+The repository has a Dockerfile. It builds Kiln, turns the web port with dashboard and health check on at 8080 and keeps
 `kiln.yml`, `plugins/`, `worlds/` and `data/` in the volume `/server`:
 
 ```bash
@@ -171,7 +176,6 @@ cd my-plugin
 ```
 
 ### What a plugin looks like
-
 
 A plugin is a jar with one class and one file.
 

@@ -153,7 +153,9 @@ public final class PluginManager {
         PluginContext context = null;
         try {
             // The jar is loaded from a copy, so the original can be replaced while the server runs.
-            copy = Files.createDirectories(directory.resolve(COPIES)).resolve(info.name() + "-" + copies++ + ".jar");
+            // The process id keeps two servers that share a folder, or a crashed one, from clashing over a name.
+            copy = Files.createDirectories(directory.resolve(COPIES))
+                    .resolve(info.name() + "-" + ProcessHandle.current().pid() + "-" + copies++ + ".jar");
             Files.copy(jar, copy, StandardCopyOption.REPLACE_EXISTING);
             List<PluginClassLoader> dependencies = info.depends().stream().map(name -> loaded.get(name).loader()).toList();
             loader = new PluginClassLoader(copy.toUri().toURL(), PluginManager.class.getClassLoader(), dependencies);

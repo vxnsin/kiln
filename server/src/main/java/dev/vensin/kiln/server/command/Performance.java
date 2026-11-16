@@ -17,6 +17,13 @@ import net.minestom.server.instance.Instance;
 /** Keeps the last ten seconds of tick times, which is enough to tell a smooth server from a struggling one. */
 public final class Performance {
 
+    /** Everything the report shows, in one value, for the chat report and the web dashboard alike. */
+    public record Snapshot(double ticksPerSecond, double averageMillis, double peakMillis, long usedMegabytes,
+                           long maxMegabytes, double cpuShare, int cores, int threads, int instances, int chunks,
+                           int entities, int players, long uptimeSeconds, List<PluginShare> plugins) {}
+
+    public record PluginShare(String name, double millisPerTick) {}
+
     private static final int WINDOW = 200;
     private static final double TICK_BUDGET_MILLIS = 50;
     private static final long CPU_SAMPLE_MILLIS = 2000;
@@ -27,37 +34,14 @@ public final class Performance {
     private final long[] tickNanos = new long[WINDOW];
     private final long startedAt = System.nanoTime();
     private int ticks;
+    private volatile double cpuLoad = -1;
     private Map<String, PluginTiming> timings = Map.of();
     private Supplier<List<String>> loadedPlugins = List::of;
-    private volatile double cpuLoad = -1;
 
     public void register(GlobalEventHandler events) {
         events.addListener(ServerTickMonitorEvent.class, event -> record(event.getTickMonitor().getTickTime()));
         Thread.ofPlatform().daemon().name("cpu-sampler").start(this::sampleCpu);
     }
-
-    private synchronized void record(double millis) {
-        int slot = ticks % WINDOW;
-        tickMillis[slot] = millis;
-        tickNanos[slot] = System.nanoTime();
-        ticks++;
-    }
-
-    public void report(CommandSender sender) {
-        Chat.say(sender, "<white>Performance</white>");
-        Chat.item(sender, row("Ticks", ticksLine()));
-        Runtime runtime = Runtime.getRuntime();
-        long megabyte = 1024 * 1024;
-        Chat.item(sender, row("Memory", "<white>" + (runtime.totalMemory() - runtime.freeMemory()) / megabyte
-                + " MB</white> of " + runtime.maxMemory() / megabyte + " MB"));
-        Chat.item(sender, row("CPU", cpuLine(runtime)));
-        Chat.item(sender, row("World", worldLine()));
-        Chat.item(sender, row("Players", "<white>"
-                + MinecraftServer.getConnectionManager().getOnlinePlayers().size() + "</white> online"));
-        Chat.item(sender, row("Uptime", "<white>" + uptime() + "</white>"));
-        reportPlugins(sender);
-    }
-
 
     /** Starts measuring plugins; their share shows up as its own block in the report. */
     public void plugins(Map<String, PluginTiming> timings, Supplier<List<String>> loaded) {
@@ -67,28 +51,72 @@ public final class Performance {
                 .delay(Duration.ofSeconds(1)).repeat(Duration.ofSeconds(1)).schedule();
     }
 
-    private void reportPlugins(CommandSender sender) {
-        List<String> names = loadedPlugins.get();
-        if (names.isEmpty()) {
+    public Snapshot snapshot() {
+        double[] ticksNow = tickStats();
+        Runtime runtime = Runtime.getRuntime();
+        long megabyte = 1024 * 1024;
+        int chunks = 0;
+        int entities = 0;
+        var instances = MinecraftServer.getInstanceManager().getInstances();
+        for (Instance instance : instances) {
+            chunks += instance.getChunks().size();
+            entities += instance.getEntities().size();
+        }
+        List<PluginShare> plugins = loadedPlugins.get().stream()
+                .map(name -> new PluginShare(name, timings.getOrDefault(name, NOTHING).millisPerSecond() / TICKS_PER_SECOND))
+                .sorted((a, b) -> Double.compare(b.millisPerTick(), a.millisPerTick()))
+                .toList();
+        return new Snapshot(ticksNow[0], ticksNow[1], ticksNow[2], (runtime.totalMemory() - runtime.freeMemory()) / megabyte,
+                runtime.maxMemory() / megabyte, cpuLoad, runtime.availableProcessors(),
+                ManagementFactory.getThreadMXBean().getThreadCount(), instances.size(), chunks, entities,
+                MinecraftServer.getConnectionManager().getOnlinePlayers().size(),
+                Duration.ofNanos(System.nanoTime() - startedAt).toSeconds(), plugins);
+    }
+
+    public void report(CommandSender sender) {
+        Snapshot now = snapshot();
+        Chat.say(sender, "<white>Performance</white>");
+        if (now.ticksPerSecond() < 0) {
+            Chat.item(sender, row("Ticks", "no ticks measured yet"));
+        } else {
+            String color = color(now.averageMillis() / TICK_BUDGET_MILLIS, 0.5, 1);
+            Chat.item(sender, row("Ticks", String.format(Locale.ROOT, "<white>%.1f</white> per second · <%s>%.1f ms</%s> "
+                    + "average · %.1f ms peak · %.0f %% of the tick used", now.ticksPerSecond(), color, now.averageMillis(),
+                    color, now.peakMillis(), now.averageMillis() / TICK_BUDGET_MILLIS * 100)));
+        }
+        Chat.item(sender, row("Memory", "<white>" + now.usedMegabytes() + " MB</white> of " + now.maxMegabytes() + " MB"));
+        String cpu = now.cpuShare() < 0 ? "" : String.format(Locale.ROOT, "<white>%.0f %%</white> of %d cores · ",
+                now.cpuShare() * 100, now.cores());
+        Chat.item(sender, row("CPU", cpu + now.threads() + " threads"));
+        Chat.item(sender, row("World", count(now.instances(), "instance") + " · " + count(now.chunks(), "chunk") + " · "
+                + count(now.entities(), "entity")));
+        Chat.item(sender, row("Players", "<white>" + now.players() + "</white> online"));
+        Chat.item(sender, row("Uptime", "<white>" + uptime(now.uptimeSeconds()) + "</white>"));
+        if (now.plugins().isEmpty()) {
             return;
         }
-        int width = names.stream().mapToInt(String::length).max().orElse(0);
-        List<Map.Entry<String, Double>> perTick = names.stream()
-                .map(name -> Map.entry(name, timings.getOrDefault(name, NOTHING).millisPerSecond() / TICKS_PER_SECOND))
-                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .toList();
+        int width = now.plugins().stream().mapToInt(plugin -> plugin.name().length()).max().orElse(0);
         Chat.item(sender, "<gold>Plugins</gold>  <gray>time in their listeners and timers, last 10 s</gray>");
-        for (Map.Entry<String, Double> entry : perTick) {
-            double share = entry.getValue() / TICK_BUDGET_MILLIS * 100;
-            String color = share < 10 ? "white" : share < 40 ? "yellow" : "red";
+        for (PluginShare plugin : now.plugins()) {
+            double share = plugin.millisPerTick() / TICK_BUDGET_MILLIS;
+            String color = color(share, 0.1, 0.4);
             Chat.item(sender, String.format(Locale.ROOT, "  <white>%-" + width + "s</white>  <%s>%.3f ms</%s> "
-                    + "<gray>per tick · %.1f %%</gray>", entry.getKey(), color, entry.getValue(), color, share));
+                    + "<gray>per tick · %.1f %%</gray>", plugin.name(), color, plugin.millisPerTick(), color, share * 100));
         }
     }
-    private synchronized String ticksLine() {
+
+    private synchronized void record(double millis) {
+        int slot = ticks % WINDOW;
+        tickMillis[slot] = millis;
+        tickNanos[slot] = System.nanoTime();
+        ticks++;
+    }
+
+    /** Ticks per second, average and peak milliseconds; a negative rate means there is nothing to say yet. */
+    private synchronized double[] tickStats() {
         int count = Math.min(ticks, WINDOW);
         if (count < 2) {
-            return "no ticks measured yet";
+            return new double[] {-1, 0, 0};
         }
         double sum = 0;
         double peak = 0;
@@ -100,18 +128,8 @@ public final class Performance {
             oldest = Math.min(oldest, tickNanos[i]);
             newest = Math.max(newest, tickNanos[i]);
         }
-        double average = sum / count;
         double perSecond = Math.min(1000 / TICK_BUDGET_MILLIS, (count - 1) / ((newest - oldest) / 1e9));
-        String color = average < TICK_BUDGET_MILLIS * 0.5 ? "green" : average < TICK_BUDGET_MILLIS ? "yellow" : "red";
-        return String.format(Locale.ROOT, "<white>%.1f</white> per second · <%s>%.1f ms</%s> average · %.1f ms peak "
-                + "· %.0f %% of the tick used", perSecond, color, average, color, peak, average / TICK_BUDGET_MILLIS * 100);
-    }
-
-    private String cpuLine(Runtime runtime) {
-        double load = cpuLoad;
-        String share = load < 0 ? "" : String.format(Locale.ROOT, "<white>%.0f %%</white> of %d cores · ", load * 100,
-                runtime.availableProcessors());
-        return share + ManagementFactory.getThreadMXBean().getThreadCount() + " threads";
+        return new double[] {perSecond, sum / count, peak};
     }
 
     /** The first CPU reading takes seconds on Windows, so it is sampled off the tick thread and cached. */
@@ -129,15 +147,8 @@ public final class Performance {
         }
     }
 
-    private static String worldLine() {
-        int chunks = 0;
-        int entities = 0;
-        var instances = MinecraftServer.getInstanceManager().getInstances();
-        for (Instance instance : instances) {
-            chunks += instance.getChunks().size();
-            entities += instance.getEntities().size();
-        }
-        return count(instances.size(), "instance") + " · " + count(chunks, "chunk") + " · " + count(entities, "entity");
+    private static String color(double share, double warn, double bad) {
+        return share < warn ? "green" : share < bad ? "yellow" : "red";
     }
 
     private static String count(int amount, String noun) {
@@ -145,8 +156,8 @@ public final class Performance {
         return "<white>" + amount + "</white> " + (amount == 1 ? noun : plural);
     }
 
-    private String uptime() {
-        Duration up = Duration.ofNanos(System.nanoTime() - startedAt);
+    static String uptime(long seconds) {
+        Duration up = Duration.ofSeconds(seconds);
         if (up.toHours() > 0) {
             return up.toHours() + " h " + up.toMinutesPart() + " min";
         }
