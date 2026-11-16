@@ -217,7 +217,8 @@ public final class HelloPlugin implements Plugin {
 }
 ```
 
-That is a complete plugin with saved data. The full version, with a config file, a command and texts in English
+That is a complete plugin with saved data. Every part of the API, with examples, is in
+[docs/plugins.md](docs/plugins.md). The full version of this one, with a config file, a command and texts in English
 and German, is in
 [`example-plugin/`](example-plugin).
 
