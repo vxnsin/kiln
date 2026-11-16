@@ -242,3 +242,19 @@ takes the plugins that depend on it out as well and loads them again with it, so
 - Its time per tick in `/kiln performance`, on the dashboard and in `/metrics`
 - Its lines in the console, tagged with its name, through `kiln.logger()`
 - If it fails to enable: a red line with the reason, while the server keeps running
+
+## Publishing
+
+Projects made with `java -jar kiln.jar new` come with a GitHub workflow. Push the project to GitHub and tag a
+version:
+
+```bash
+git tag v1.0.0
+```
+
+```bash
+git push --tags
+```
+
+The workflow builds the plugin against the latest Kiln release and publishes the jar. Anyone running Kiln can
+then install it with `/kiln install <you>/<repository>`, and update it the same way.

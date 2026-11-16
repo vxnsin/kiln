@@ -82,6 +82,7 @@ final class PluginScaffold {
         write("build.gradle.kts", project.resolve("build.gradle.kts"), values);
         write("settings.gradle.kts", project.resolve("settings.gradle.kts"), values);
         write("gitignore", project.resolve(".gitignore"), values);
+        write("release.yml", project.resolve(".github/workflows/release.yml"), values);
         write("kiln-plugin.yml", resources.resolve("kiln-plugin.yml"), values);
         write("en.yml", resources.resolve("lang/en.yml"), values);
         write("Plugin.java", sources.resolve(className + ".java"), values);

@@ -38,7 +38,7 @@ final class UpdateCheck {
         String jar = null;
         for (JsonElement asset : release.getAsJsonArray("assets")) {
             String url = asset.getAsJsonObject().get("browser_download_url").getAsString();
-            if (url.endsWith(".jar")) {
+            if (url.endsWith("/kiln.jar")) {
                 jar = url;
             }
         }

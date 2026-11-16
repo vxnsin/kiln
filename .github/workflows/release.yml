@@ -24,9 +24,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            server/build/libs/kiln-*.jar \
-            api/build/libs/kiln-api-*.jar \
+          # Fixed names give stable links: releases/latest/download/kiln.jar always points at the newest server.
+          cp server/build/libs/kiln-*.jar kiln.jar
+          cp "$(ls api/build/libs/kiln-api-*.jar | grep -v sources)" kiln-api.jar
+          gh release create "$GITHUB_REF_NAME" kiln.jar kiln-api.jar \
             --title "Kiln ${GITHUB_REF_NAME#v}" --notes-file RELEASE_NOTES.md
       - name: Push the container image
         run: |
