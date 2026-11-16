@@ -213,9 +213,9 @@ public final class KilnCommand {
 
     private void stop(CommandSender sender, String reason) {
         Chat.say(sender, "<gray>Shutting down</gray>");
-        String advice = reason.isBlank() ? "It will be back shortly." : reason;
+        String advice = MiniMessage.miniMessage().escapeTags(reason);
         MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(player -> player.kick(
-                Chat.screen("The server is shutting down", advice)));
+                ServerTexts.screen("stopping", advice)));
         MinecraftServer.stopCleanly();
         System.exit(0);
     }
@@ -258,7 +258,7 @@ public final class KilnCommand {
                 return;
             }
             String why = context.has(reason) ? String.join(" ", context.get(reason)) : "";
-            target.kick(Chat.screen("You were kicked", why.isBlank() ? "You can join again." : why));
+            target.kick(ServerTexts.screen("kicked", MiniMessage.miniMessage().escapeTags(why)));
             Chat.say(sender, "<green>" + target.getUsername() + " was kicked.</green>");
         };
         command.addSyntax(kick, player);

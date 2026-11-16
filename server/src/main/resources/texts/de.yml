@@ -1,0 +1,11 @@
+starting: ["Der Server startet noch", "Warte ein paar Sekunden und versuch es nochmal."]
+starting-motd: "<gradient:#ff8700:#ffd700><bold>Startet gerade</bold></gradient><newline><gray>gleich bereit</gray>"
+full: ["Der Server ist voll", "Versuch es gleich nochmal."]
+unchecked: ["Dein Login konnte nicht geprüft werden", "Bitte versuch es gleich nochmal."]
+maintenance: ["Der Server wird gerade gewartet", "Bitte schau etwas später wieder vorbei."]
+banned: ["Du bist von diesem Server gebannt", "Es wurde kein Grund angegeben."]
+ban-forever: "Dieser Bann endet nicht."
+ban-until: "Er endet am <date>."
+kicked: ["Du wurdest vom Server geworfen", "Du kannst wieder beitreten."]
+stopping: ["Der Server fährt herunter", "Er ist gleich wieder da."]
+world-closed: ["Die Welt, in der du warst, wurde geschlossen", "Tritt erneut bei, um zurückzukommen."]

@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import dev.vensin.kiln.server.command.ServerTexts;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.nbt.BinaryTagIO;
 import net.kyori.adventure.nbt.CompoundBinaryTag;
@@ -102,7 +103,7 @@ public final class WorldFiles {
             if (home != null) {
                 player.setInstance(home, homeSpawn);
             } else {
-                player.kick("The world you were in was closed.");
+                player.kick(ServerTexts.screen("world-closed"));
             }
         }
         instance.scheduleNextTick(WorldFiles::release);

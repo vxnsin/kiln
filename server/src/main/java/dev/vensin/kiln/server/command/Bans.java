@@ -66,10 +66,10 @@ public final class Bans {
     }
 
     public static Component screen(Ban ban) {
-        String reason = ban.reason().isBlank() ? "No reason was given." : ban.reason();
-        String when = ban.until() == 0 ? "This ban does not end." : "It ends on " + DATE.format(Instant.ofEpochMilli(ban.until())) + ".";
-        return Chat.screen("You are banned from this server",
-                MiniMessage.miniMessage().escapeTags(reason) + "<newline>" + when);
+        String reason = ban.reason().isBlank() ? ServerTexts.advice("banned") : MiniMessage.miniMessage().escapeTags(ban.reason());
+        String when = ban.until() == 0 ? ServerTexts.line("ban-forever")
+                : ServerTexts.line("ban-until").replace("<date>", DATE.format(Instant.ofEpochMilli(ban.until())));
+        return ServerTexts.screen("banned", reason + "<newline>" + when);
     }
 
     /** 30m, 12h, 7d or 2w; null when the text is not a duration. */

@@ -1,0 +1,11 @@
+starting: ["The server is still starting", "Give it a few seconds and join again."]
+starting-motd: "<gradient:#ff8700:#ffd700><bold>Starting up</bold></gradient><newline><gray>ready in a few seconds</gray>"
+full: ["The server is full", "Try again in a moment."]
+unchecked: ["Your login could not be checked", "Please try again in a moment."]
+maintenance: ["The server is under maintenance", "Please come back a little later."]
+banned: ["You are banned from this server", "No reason was given."]
+ban-forever: "This ban does not end."
+ban-until: "It ends on <date>."
+kicked: ["You were kicked", "You can join again."]
+stopping: ["The server is shutting down", "It will be back shortly."]
+world-closed: ["The world you were in was closed", "Join again to get back in."]

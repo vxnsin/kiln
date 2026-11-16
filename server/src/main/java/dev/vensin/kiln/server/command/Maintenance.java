@@ -42,7 +42,7 @@ public final class Maintenance {
     }
 
     public Component screen() {
-        return Chat.screen("The server is under maintenance", "Please come back a little later.");
+        return ServerTexts.screen("maintenance");
     }
 
     /** Turning it on sends everyone home who would not be let in again. */

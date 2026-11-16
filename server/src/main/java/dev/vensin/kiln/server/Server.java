@@ -3,6 +3,7 @@ package dev.vensin.kiln.server;
 import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.command.Performance;
 import dev.vensin.kiln.server.command.Permissions;
+import dev.vensin.kiln.server.command.ServerTexts;
 import dev.vensin.kiln.server.chat.ChatStyle;
 import dev.vensin.kiln.server.command.Bans;
 import dev.vensin.kiln.server.command.Chat;
@@ -69,8 +70,6 @@ final class Server {
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     private static final int GROUND = 40;
     private static final int VOID_MARGIN = 64;
-    private static final String STARTING_MOTD =
-            "<gradient:#ff8700:#ffd700><bold>Starting up</bold></gradient><newline><gray>ready in a few seconds</gray>";
 
     private Server() {}
 
@@ -92,6 +91,7 @@ final class Server {
         StartReport.Step engine = report.begin("Engine", "starting Minestom");
         Settings settings = Settings.load(Path.of("kiln.yml"));
         Chat.brand(settings.name(), settings.colorFrom(), settings.colorTo());
+        ServerTexts.use(settings.language());
         if (!portFree(settings.port())) {
             engine.fail("port " + settings.port() + " is already in use, is another server still running?");
             report.done();
@@ -130,7 +130,7 @@ final class Server {
         events.addListener(AsyncPlayerPreLoginEvent.class, event -> {
             String name = event.getGameProfile().name();
             if (!ready.get()) {
-                event.getConnection().kick(Chat.screen("The server is still starting", "Give it a few seconds and join again."));
+                event.getConnection().kick(ServerTexts.screen("starting"));
                 return;
             }
             // A check that cannot be made keeps the player out: a storage hiccup must not let a banned player in.
@@ -142,11 +142,11 @@ final class Server {
                     event.getConnection().kick(maintenance.screen());
                 } else if (MinecraftServer.getConnectionManager().getOnlinePlayers().size() >= settings.maxPlayers()
                         && !operators.isOperator(name)) {
-                    event.getConnection().kick(Chat.screen("The server is full", "Try again in a moment."));
+                    event.getConnection().kick(ServerTexts.screen("full"));
                 }
             } catch (RuntimeException e) {
                 LOG.error("Could not check whether {} may join, keeping them out: {}", name, e.getMessage());
-                event.getConnection().kick(Chat.screen("Your login could not be checked", "Please try again in a moment."));
+                event.getConnection().kick(ServerTexts.screen("unchecked"));
             }
         });
         AtomicReference<Settings> live = new AtomicReference<>(settings);
@@ -223,6 +223,7 @@ final class Server {
         kiln.onConfigReload(() -> {
             Settings fresh = Settings.load(Path.of("kiln.yml"));
             Chat.brand(fresh.name(), fresh.colorFrom(), fresh.colorTo());
+            ServerTexts.use(fresh.language());
             chatStyle.update(ChatStyle.from(fresh));
             live.set(fresh);
         });
@@ -374,7 +375,7 @@ final class Server {
         byte[] icon = serverIcon();
         events.addListener(ServerListPingEvent.class, event -> {
             Status.Builder status = Status.builder(event.getStatus())
-                    .description(MiniMessage.miniMessage().deserialize(!ready.get() ? STARTING_MOTD
+                    .description(MiniMessage.miniMessage().deserialize(!ready.get() ? ServerTexts.line("starting-motd")
                             : maintenance.enabled() ? live.get().maintenanceMotd() : live.get().motd()))
                     .playerInfo(MinecraftServer.getConnectionManager().getOnlinePlayers().size(), live.get().maxPlayers());
             if (icon != null) {
