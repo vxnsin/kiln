@@ -1,5 +1,11 @@
 # Kiln server settings
 
+# Your server's name and colors, shown in front of chat messages and on disconnect screens.
+name: Kiln
+colors:
+  from: "#ff8700"
+  to: "#ffd700"
+
 # Address and port Minecraft connects to. 0.0.0.0 listens on every network interface.
 host: 0.0.0.0
 port: 25565

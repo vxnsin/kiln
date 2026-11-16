@@ -32,7 +32,8 @@ memory.
 - **One command for the server itself.** `/kiln` with `plugins`, `reload`, `load`, `unload`, `players`, `performance`,
   `maintenance`, `version`, `update`, `op`, `deop` and `stop`, in the console with tab completion and in
   game for operators.
-- **One settings file.** `kiln.yml` is written on first start, with a comment on every option.
+- **One settings file.** `kiln.yml` is written on first start, with a comment on every option. It also holds
+  your server name and two colors, which every chat message and disconnect screen uses.
 - **Honest while starting.** The port opens first. Whoever joins too early gets a clean "still starting"
   screen, and the server list says so too.
 - **Maintenance.** `/kiln maintenance on` lets in only operators and the players you allow. Everyone else

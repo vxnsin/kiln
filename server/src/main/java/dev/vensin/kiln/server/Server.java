@@ -66,6 +66,7 @@ final class Server {
     private static void start(StartReport report, String version) throws IOException {
         StartReport.Step engine = report.begin("Engine", "starting Minestom");
         Settings settings = Settings.load(Path.of("kiln.yml"));
+        Chat.brand(settings.name(), settings.colorFrom(), settings.colorTo());
         if (!portFree(settings.port())) {
             engine.fail("port " + settings.port() + " is already in use, is another server still running?");
             report.done();
