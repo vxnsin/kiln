@@ -9,7 +9,7 @@ java -jar kiln.jar
 ```
 
 On the first start Kiln writes `kiln.yml` and `permissions.yml` with a comment on every option, and creates
-`plugins/`, `worlds/` and `data/`. Make yourself operator in the console:
+`plugins/` and `worlds/`. Make yourself operator in the console:
 
 ```bash
 kiln op YourName
@@ -73,7 +73,7 @@ public-address: lobby-1.example.com:25565
 
 - Player data and plugin tables are shared, so a player has the same coins on every server.
 - `/kiln servers` lists every server with its players, `/kiln find <player>` says where someone is.
-- Bans and maintenance live in the shared storage, so they count everywhere.
+- Bans live in the shared storage, so a ban counts on every server.
 - With `public-address` set, `/kiln send <player> <server>` and plugins move players between servers using
   Minecraft's transfer. No proxy is needed for that.
 
@@ -91,5 +91,5 @@ forwarding secret on every Kiln server. Players then only get in through the pro
 ## Updating
 
 `/kiln update` looks for a newer release on GitHub and downloads it next to the running jar. Stop the
-server, replace `kiln.jar` with the new file and start again. Plugins built against an older API usually keep
-working; the release notes say when they do not.
+server, replace `kiln.jar` with the new file and start again. The release notes say when plugins need a new
+build.
