@@ -13,9 +13,11 @@ import dev.vensin.kiln.server.console.Terminal;
 import dev.vensin.kiln.server.plugin.PluginManager;
 import dev.vensin.kiln.server.store.FileStore;
 import dev.vensin.kiln.server.store.PlayerDataManager;
+import dev.vensin.kiln.server.world.WorldFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
@@ -96,18 +98,30 @@ final class Server {
                 + Ansi.DOT + " port " + settings.port());
 
         StartReport.Step world = report.begin("World", "preparing the default world");
-        if (settings.world().equals("flat")) {
-            flatWorld(events);
-            world.ok("flat");
-        } else {
-            world.ok("none, plugins provide it");
+        WorldFiles worlds = new WorldFiles(Path.of("worlds"));
+        Files.createDirectories(Path.of("worlds"));
+        switch (settings.world()) {
+            case "flat" -> {
+                defaultWorld(events, worlds, flatWorld(), new Pos(0.5, GROUND, 0.5));
+                world.ok("flat");
+            }
+            case "none" -> world.ok("none, plugins provide it");
+            default -> {
+                if (!worlds.available().contains(settings.world())) {
+                    world.fail("worlds/" + settings.world() + " is not there or holds no Minecraft world");
+                    report.done();
+                    System.exit(1);
+                }
+                defaultWorld(events, worlds, worlds.open(settings.world()), worlds.spawn(settings.world()));
+                world.ok(settings.world() + " from worlds/" + settings.world());
+            }
         }
 
         // The defaults above are registered first, so a plugin listening to the same event has the last word.
         StartReport.Step loading = report.beginQuietly("Plugins");
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
-        PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), operators, playerData);
+        PluginManager plugins = new PluginManager(Path.of("plugins"), Path.of("data"), operators, playerData, worlds);
         plugins.loadNew();
         listPlugins(report, loading, plugins);
 
@@ -169,14 +183,18 @@ final class Server {
         return String.format("%-" + width + "s", text);
     }
 
-    private static void flatWorld(GlobalEventHandler events) {
+    private static InstanceContainer flatWorld() {
         InstanceContainer instance = MinecraftServer.getInstanceManager().createInstanceContainer();
         instance.setChunkSupplier(LightingChunk::new);
         instance.setGenerator(unit -> {
             unit.modifier().fillHeight(GROUND - 4, GROUND - 1, Block.STONE);
             unit.modifier().fillHeight(GROUND - 1, GROUND, Block.GRASS_BLOCK);
         });
-        Pos spawn = new Pos(0.5, GROUND, 0.5);
+        return instance;
+    }
+
+    private static void defaultWorld(GlobalEventHandler events, WorldFiles worlds, InstanceContainer instance, Pos spawn) {
+        worlds.home(instance, spawn);
         events.addListener(AsyncPlayerConfigurationEvent.class, event -> {
             event.setSpawningInstance(instance);
             event.getPlayer().setRespawnPoint(spawn);

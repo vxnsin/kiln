@@ -23,4 +23,5 @@ max-players: 100
 # The world players land in when no plugin gives them one.
 #   flat   an endless flat grass world, enough to stand on and test
 #   none   plugins must set a spawning instance themselves
+#   name   a world folder in worlds/, for example one saved in singleplayer (read-only, never written back)
 world: flat

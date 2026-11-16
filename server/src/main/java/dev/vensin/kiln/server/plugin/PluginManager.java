@@ -4,6 +4,7 @@ import dev.vensin.kiln.api.Plugin;
 import dev.vensin.kiln.api.PluginInfo;
 import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.store.PlayerDataManager;
+import dev.vensin.kiln.server.world.WorldFiles;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
@@ -29,16 +30,19 @@ public final class PluginManager {
     private final Path dataRoot;
     private final Operators operators;
     private final PlayerDataManager playerData;
+    private final WorldFiles worlds;
     private final Map<String, Loaded> loaded = new LinkedHashMap<>();
     private final List<Failure> failures = new ArrayList<>();
     private int copies;
     private boolean started;
 
-    public PluginManager(Path directory, Path dataRoot, Operators operators, PlayerDataManager playerData) {
+    public PluginManager(Path directory, Path dataRoot, Operators operators, PlayerDataManager playerData,
+                         WorldFiles worlds) {
         this.directory = directory;
         this.dataRoot = dataRoot;
         this.operators = operators;
         this.playerData = playerData;
+        this.worlds = worlds;
     }
 
     public List<Loaded> loaded() {
@@ -151,7 +155,7 @@ public final class PluginManager {
             }
             Plugin plugin = (Plugin) main.getDeclaredConstructor().newInstance();
             context = new PluginContext(info, loader, directory.resolve(info.name()), dataRoot.resolve(info.name()),
-                    operators, playerData);
+                    operators, playerData, worlds);
             plugin.enable(context);
             Loaded result = new Loaded(info, plugin, loader, context, copy);
             loaded.put(info.name(), result);

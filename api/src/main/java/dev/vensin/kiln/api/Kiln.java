@@ -27,6 +27,12 @@ public interface Kiln {
     /** Registers commands that are removed again when the plugin is unloaded or swapped. */
     void commands(Command... commands);
 
+    /** Worlds from the worlds folder; instances opened here are closed when the plugin is unloaded. */
+    Worlds worlds();
+
+    /** Timers that stop on their own when the plugin is unloaded or swapped. */
+    Tasks tasks();
+
     /** plugins/&lt;name&gt;/, created on first use. */
     Path dataFolder();
 

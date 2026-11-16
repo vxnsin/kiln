@@ -2,11 +2,14 @@ package dev.vensin.kiln.server.plugin;
 
 import dev.vensin.kiln.api.Kiln;
 import dev.vensin.kiln.api.PluginInfo;
+import dev.vensin.kiln.api.Tasks;
+import dev.vensin.kiln.api.Worlds;
 import dev.vensin.kiln.api.store.PlayerData;
 import dev.vensin.kiln.api.store.Store;
 import dev.vensin.kiln.server.command.Operators;
 import dev.vensin.kiln.server.store.FileStore;
 import dev.vensin.kiln.server.store.PlayerDataManager;
+import dev.vensin.kiln.server.world.WorldFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -44,15 +47,18 @@ final class PluginContext implements Kiln {
     private final EventNode<Event> events;
     private final List<Command> commands = new ArrayList<>();
     private final List<PlayerData<?>> data = new ArrayList<>();
+    private final PluginWorlds worlds;
+    private final PluginTasks tasks = new PluginTasks();
 
     PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, Path data, Operators operators,
-                  PlayerDataManager playerData) {
+                  PlayerDataManager playerData, WorldFiles worldFiles) {
         this.info = info;
         this.loader = loader;
         this.folder = folder;
         this.store = new FileStore(data);
         this.operators = operators;
         this.playerData = playerData;
+        this.worlds = new PluginWorlds(worldFiles);
         this.logger = LoggerFactory.getLogger(info.name());
         this.events = EventNode.all("plugin-" + info.name());
         MinecraftServer.getGlobalEventHandler().addChild(events);
@@ -80,8 +86,20 @@ final class PluginContext implements Kiln {
         commands.addAll(List.of(added));
     }
 
+    @Override
+    public Worlds worlds() {
+        return worlds;
+    }
+
+    @Override
+    public Tasks tasks() {
+        return tasks;
+    }
+
     /** Takes back everything the plugin registered through this context. */
     void close() {
+        tasks.cancelAll();
+        worlds.closeAll();
         MinecraftServer.getGlobalEventHandler().removeChild(events);
         commands.forEach(MinecraftServer.getCommandManager()::unregister);
         commands.clear();

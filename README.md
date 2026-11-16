@@ -37,6 +37,8 @@ memory.
   gets a clear screen, the server list shows it, and the setting survives a restart.
 - **Behind a proxy.** Put the forwarding secret of your Velocity proxy into `kiln.yml` and players come
   through the proxy only.
+- **Worlds from files.** Drop a world saved in singleplayer or on a Paper server into `worlds/`. Every
+  `open` hands out a fresh copy that is never written back, so each round starts on the same map.
 - **A place to stand.** A flat default world, so the server is joinable before any plugin exists. Plugins
   replace it by setting their own spawning instance.
 - **Mojang authentication, MiniMessage and logging** set up and out of the way.
@@ -122,7 +124,8 @@ That is a complete plugin with saved data. The full version, with a config file 
 [`example-plugin/`](example-plugin).
 
 Swapping works because Kiln knows what belongs to a plugin: listeners registered on `kiln.events()`, commands
-passed to `kiln.commands(...)` and its player data. Threads and scheduled tasks a plugin starts itself are its
+passed to `kiln.commands(...)`, timers from `kiln.tasks()`, worlds from `kiln.worlds()` and its player data.
+Threads and executors a plugin starts itself are its
 own to stop in `disable()`.
 
 Install the API into your local Maven repository:
@@ -150,6 +153,8 @@ What a plugin gets from Kiln:
 | `kiln.commands(...)` | Registers commands that go away with the plugin |
 | `kiln.playerData(name, type, fresh)` | A value per player, loaded on join and saved on leave |
 | `kiln.store().table(name, type)` | Key-value storage for everything that is not per player |
+| `kiln.worlds().open(name)` | A fresh copy of a world from `worlds/`, closed again when the plugin goes |
+| `kiln.tasks().every(interval, action)` | Timers that stop when the plugin is unloaded or swapped |
 | `kiln.config()` | `plugins/<name>/config.yml`, copied from the jar on first start |
 | `kiln.dataFolder()` | `plugins/<name>/` for the plugin's own files |
 | `kiln.logger()` | A logger whose lines are tagged with the plugin name |
@@ -162,6 +167,7 @@ kiln-0.1.0.jar
 kiln.yml        settings
 ops.txt         operators, one name per line
 plugins/        plugin jars and their config folders
+worlds/         Minecraft worlds, one folder each
 data/           stored data, one folder per plugin
 ```
 
