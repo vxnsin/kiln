@@ -1,0 +1,11 @@
+name: Idea
+description: Something Kiln could do
+labels: [idea]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to do
+      description: The situation and what is missing; a sketch of the solution is welcome but optional
+    validations:
+      required: true

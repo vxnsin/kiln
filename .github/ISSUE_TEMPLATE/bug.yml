@@ -1,0 +1,23 @@
+name: Bug
+description: Something does not work as described
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Kiln version
+      description: The first lines of the console show it, or /kiln version
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      render: text
