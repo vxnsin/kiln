@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -42,5 +43,18 @@ class SettingsTest {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> Settings.load(folder.resolve("kiln.yml"), name -> null));
         assertTrue(error.getMessage().startsWith("port"));
+    }
+
+    @Test
+    void namesOptionsItDoesNotKnowAndSuggestsTheClosest() throws Exception {
+        Files.writeString(folder.resolve("kiln.yml"), "port: 25570\nweb_port: 8080\nchat:\n  formatt: x\n");
+        Settings settings = Settings.load(folder.resolve("kiln.yml"), name -> null);
+        assertEquals(List.of("chat.formatt (did you mean chat.format?)", "web_port (did you mean web-port?)"),
+                settings.unknownOptions());
+    }
+
+    @Test
+    void theDefaultFileHasNoUnknownOptions() throws Exception {
+        assertTrue(Settings.load(folder.resolve("kiln.yml"), name -> null).unknownOptions().isEmpty());
     }
 }

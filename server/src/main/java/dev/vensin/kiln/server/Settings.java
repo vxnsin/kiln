@@ -5,7 +5,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -20,7 +24,8 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                        String packFile, String packHost, int packPort, String packUrl, boolean packRequired,
                        String packPrompt, String storage, String redisUri, String mongoUri, String serverId,
                        String chatFormat, String joinMessage, String leaveMessage, String tabHeader, String tabFooter,
-                       String publicAddress, String gameMode, boolean voidRescue, int autosave, String dailyRestart) {
+                       String publicAddress, String gameMode, boolean voidRescue, int autosave, String dailyRestart,
+                       List<String> unknownOptions) {
 
     private static final String DEFAULTS = "kiln.yml";
     private static final String DEFAULT_CHAT = "<prefix><white><name></white> <dark_gray>»</dark_gray> <gray><message></gray>";
@@ -50,7 +55,7 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
             throw new IllegalArgumentException(file.getFileName() + " line " + (e.getProblemMark().getLine() + 1) + ": "
                     + e.getProblem());
         }
-        Values values = new Values(yaml == null ? Map.of() : yaml, environment);
+        Values values = new Values(yaml == null ? Map.of() : yaml, environment, new HashSet<>());
         return new Settings(
                 values.text("host", "0.0.0.0"),
                 values.number("port", 25565),
@@ -86,7 +91,8 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                 values.text("gamemode", "adventure").toLowerCase(Locale.ROOT),
                 values.flag("void-rescue", true),
                 values.number("autosave", 300),
-                values.text("daily-restart", ""));
+                values.text("daily-restart", ""),
+                values.unknown());
     }
 
 
@@ -100,7 +106,7 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
         }
         return "server";
     }
-    private record Values(Map<String, Object> yaml, Function<String, String> environment) {
+    private record Values(Map<String, Object> yaml, Function<String, String> environment, Set<String> read) {
 
         String text(String key, String fallback) {
             Object value = raw(key);
@@ -124,7 +130,48 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
             return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value).strip());
         }
 
+
+        /** Options in the file that nothing reads, each with the closest real option when one is near. */
+        List<String> unknown() {
+            List<String> found = new ArrayList<>();
+            collect("", yaml, found);
+            return found.stream().filter(key -> !read.contains(key)).map(key -> {
+                String closest = read.stream().min((a, b) -> Integer.compare(distance(key, a), distance(key, b))).orElse("");
+                return distance(key, closest) <= 3 ? key + " (did you mean " + closest + "?)" : key;
+            }).sorted().toList();
+        }
+
+        private static void collect(String prefix, Map<?, ?> section, List<String> into) {
+            section.forEach((key, value) -> {
+                String path = prefix + key;
+                if (value instanceof Map<?, ?> nested) {
+                    collect(path + ".", nested, into);
+                } else {
+                    into.add(path);
+                }
+            });
+        }
+
+        private static int distance(String a, String b) {
+            int[] previous = new int[b.length() + 1];
+            int[] current = new int[b.length() + 1];
+            for (int j = 0; j <= b.length(); j++) {
+                previous[j] = j;
+            }
+            for (int i = 1; i <= a.length(); i++) {
+                current[0] = i;
+                for (int j = 1; j <= b.length(); j++) {
+                    int replace = previous[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1);
+                    current[j] = Math.min(replace, Math.min(previous[j], current[j - 1]) + 1);
+                }
+                int[] swap = previous;
+                previous = current;
+                current = swap;
+            }
+            return previous[b.length()];
+        }
         private Object raw(String key) {
+            read.add(key);
             String fromEnvironment = environment.apply("KILN_" + key.replace('.', '_').replace('-', '_')
                     .toUpperCase(Locale.ROOT));
             if (fromEnvironment != null) {

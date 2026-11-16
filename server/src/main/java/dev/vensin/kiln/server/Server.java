@@ -261,6 +261,7 @@ final class Server {
         network.start();
         ready.set(true);
         opening.ok(report.elapsed() + " " + Ansi.DOT + " type kiln for help");
+        settings.unknownOptions().forEach(option -> LOG.warn("kiln.yml has an option Kiln does not know: {}", option));
         LoggerFactory.getLogger("kiln.startup").info("Kiln {} ready on port {} in {}; storage {}; plugins: {}{}", version,
                 settings.port(), report.elapsed(), storage.describe(),
                 plugins.loaded().stream().map(p -> p.info().name() + " " + p.info().version()).toList(),
