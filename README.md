@@ -128,7 +128,7 @@ Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kil
 | `/kiln gm <mode> [player]`, `tp <player> [target]` | Game mode and teleporting while you build and test |
 | `/kiln world [name]`, `world home` | Walk through a map from `worlds/` in a throwaway copy |
 | `/kiln kick <player> [reason]` | Send a player away with a clean screen |
-| `/kiln ban <player> [30m|12h|7d|2w] [reason]`, `unban`, `bans` | Keep a player out, for a while or for good; shared through Redis |
+| `/kiln ban <player> [time] [reason]`, `unban`, `bans` | Keep a player out for 30m, 12h, 7d, 2w or for good; shared through Redis |
 | `/kiln say <message>` | Announce something to everyone |
 | `/kiln maintenance on`, `off`, `allow <name>`, `deny <name>` | Let only operators and allowed players in |
 | `/kiln group add <player> <group>`, `remove`, `reload` | Permission groups from `permissions.yml` |
