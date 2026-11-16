@@ -133,14 +133,20 @@ final class Server {
                 event.getConnection().kick(Chat.screen("The server is still starting", "Give it a few seconds and join again."));
                 return;
             }
-            Optional<Bans.Ban> ban = bans.active(name);
-            if (ban.isPresent()) {
-                event.getConnection().kick(Bans.screen(ban.get()));
-            } else if (!maintenance.lets(name)) {
-                event.getConnection().kick(maintenance.screen());
-            } else if (MinecraftServer.getConnectionManager().getOnlinePlayers().size() >= settings.maxPlayers()
-                    && !operators.isOperator(name)) {
-                event.getConnection().kick(Chat.screen("The server is full", "Try again in a moment."));
+            // A check that cannot be made keeps the player out: a storage hiccup must not let a banned player in.
+            try {
+                Optional<Bans.Ban> ban = bans.active(name);
+                if (ban.isPresent()) {
+                    event.getConnection().kick(Bans.screen(ban.get()));
+                } else if (!maintenance.lets(name)) {
+                    event.getConnection().kick(maintenance.screen());
+                } else if (MinecraftServer.getConnectionManager().getOnlinePlayers().size() >= settings.maxPlayers()
+                        && !operators.isOperator(name)) {
+                    event.getConnection().kick(Chat.screen("The server is full", "Try again in a moment."));
+                }
+            } catch (RuntimeException e) {
+                LOG.error("Could not check whether {} may join, keeping them out: {}", name, e.getMessage());
+                event.getConnection().kick(Chat.screen("Your login could not be checked", "Please try again in a moment."));
             }
         });
         AtomicReference<Settings> live = new AtomicReference<>(settings);
@@ -224,9 +230,13 @@ final class Server {
             watch(plugins, kiln);
         }
         MinecraftServer.getSchedulerManager().buildShutdownTask(() -> {
-            plugins.disableAll();
-            playerData.saveAll();
-            storage.close();
+            for (Runnable step : List.<Runnable>of(plugins::disableAll, playerData::saveAll, storage::close)) {
+                try {
+                    step.run();
+                } catch (RuntimeException e) {
+                    LOG.error("Shutdown step failed, going on with the next", e);
+                }
+            }
         });
         if (settings.stopWhenEmpty() > 0) {
             new EmptyShutdown(Duration.ofSeconds(settings.stopWhenEmpty())).register(events);

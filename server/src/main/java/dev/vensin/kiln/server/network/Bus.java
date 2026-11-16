@@ -12,4 +12,6 @@ public interface Bus {
 
     /** One line for the startup report. */
     String describe();
+
+    default void close() {}
 }

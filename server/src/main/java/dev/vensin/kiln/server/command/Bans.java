@@ -5,7 +5,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -89,7 +91,12 @@ public final class Bans {
         return ban.until() == 0 ? "for good" : "until " + DATE.format(Instant.ofEpochMilli(ban.until()));
     }
 
+    /** Minecraft names fit the storage rules; anything else, possible in offline mode, is stored hex-encoded. */
     private static String key(String name) {
-        return name.toLowerCase(Locale.ROOT);
+        String lower = name.toLowerCase(Locale.ROOT);
+        if (lower.matches("[a-z0-9_]{1,16}")) {
+            return lower;
+        }
+        return "x-" + HexFormat.of().formatHex(lower.getBytes(StandardCharsets.UTF_8));
     }
 }

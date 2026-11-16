@@ -29,15 +29,15 @@ public final class Maintenance {
         this.state = table.get(KEY).orElseGet(State::new);
     }
 
-    public boolean enabled() {
+    public synchronized boolean enabled() {
         return state.enabled;
     }
 
-    public Set<String> allowed() {
+    public synchronized Set<String> allowed() {
         return Set.copyOf(state.allowed);
     }
 
-    public boolean lets(String username) {
+    public synchronized boolean lets(String username) {
         return !state.enabled || operators.isOperator(username) || state.allowed.contains(lower(username));
     }
 

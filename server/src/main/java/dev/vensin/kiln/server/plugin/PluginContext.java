@@ -121,14 +121,23 @@ final class PluginContext implements Kiln {
 
     /** Takes back everything the plugin registered through this context. */
     void close() {
-        tasks.cancelAll();
-        network.close();
-        worlds.closeAll();
-        MinecraftServer.getGlobalEventHandler().removeChild(node);
-        commands.forEach(MinecraftServer.getCommandManager()::unregister);
+        step("timers", tasks::cancelAll);
+        step("network subscriptions", network::close);
+        step("worlds", worlds::closeAll);
+        step("listeners", () -> MinecraftServer.getGlobalEventHandler().removeChild(node));
+        step("commands", () -> commands.forEach(MinecraftServer.getCommandManager()::unregister));
         commands.clear();
-        data.forEach(playerData::remove);
+        step("player data", () -> data.forEach(playerData::remove));
         data.clear();
+    }
+
+    /** One failing part of the cleanup must not leave the rest of the plugin behind. */
+    private void step(String what, Runnable action) {
+        try {
+            action.run();
+        } catch (RuntimeException e) {
+            logger.error("Removing its {} failed: {}", what, e.getMessage());
+        }
     }
     @Override
     public Path dataFolder() {

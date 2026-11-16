@@ -28,7 +28,7 @@ final class PluginScaffold {
         String name = args[1];
         Path project = Path.of(args.length > 2 ? args[2] : name).toAbsolutePath().normalize();
         try {
-            if (Files.exists(project) && Files.list(project).findAny().isPresent()) {
+            if (Files.exists(project) && !isEmpty(project)) {
                 System.out.println("  " + Ansi.red(Ansi.ERROR) + " " + project + " already exists and is not empty");
                 return 1;
             }
@@ -38,7 +38,7 @@ final class PluginScaffold {
             return 1;
         }
         Path here = Path.of("").toAbsolutePath();
-        String folder = here.relativize(project).toString();
+        String folder = pathFrom(here, project);
         System.out.println();
         System.out.println("  " + Ansi.green(Ansi.OK) + " " + Ansi.bold(name) + Ansi.dim(" created in " + folder));
         System.out.println();
@@ -50,6 +50,21 @@ final class PluginScaffold {
         return 0;
     }
 
+
+    private static boolean isEmpty(Path folder) throws IOException {
+        try (var entries = Files.list(folder)) {
+            return entries.findAny().isEmpty();
+        }
+    }
+
+    /** Relative when both sit on the same drive, absolute otherwise; Windows cannot relate C: to D:. */
+    private static String pathFrom(Path project, Path target) {
+        try {
+            return slashes(project.relativize(target));
+        } catch (IllegalArgumentException differentRoots) {
+            return slashes(target);
+        }
+    }
     private static void create(String name, Path project) throws IOException, URISyntaxException {
         String className = className(name);
         String packageName = name.replace("-", "");
@@ -59,8 +74,8 @@ final class PluginScaffold {
                 "{{name}}", name,
                 "{{class}}", className,
                 "{{package}}", packageName,
-                "{{kilnJar}}", slashes(project.relativize(jar)),
-                "{{plugins}}", slashes(project.relativize(server.resolve("plugins"))));
+                "{{kilnJar}}", pathFrom(project, jar),
+                "{{plugins}}", pathFrom(project, server.resolve("plugins")));
 
         Path sources = project.resolve("src/main/java").resolve(packageName);
         Path resources = project.resolve("src/main/resources");

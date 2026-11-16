@@ -43,6 +43,10 @@ final class UpdateCheck {
             }
         }
         String tag = release.get("tag_name").getAsString();
+        // The version ends up in a file name, so it may only look like a version.
+        if (!tag.matches("v?[0-9][0-9A-Za-z.-]{0,31}")) {
+            throw new IOException("the latest release has an unexpected version: " + tag);
+        }
         return Optional.of(new Release(tag.startsWith("v") ? tag.substring(1) : tag,
                 release.get("html_url").getAsString(), jar));
     }

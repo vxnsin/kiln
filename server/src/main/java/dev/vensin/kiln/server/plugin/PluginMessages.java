@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -26,12 +27,15 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 final class PluginMessages implements Messages {
 
     private static final String FALLBACK = "en";
+    private static final int MISSING_LIMIT = 64;
 
     private final PluginClassLoader loader;
     private final Path overrides;
     private final String serverLanguage;
     private final Logger logger;
     private final Map<String, Map<String, String>> languages = new ConcurrentHashMap<>();
+    /** Codes known to have no file, capped so a client sending made-up codes cannot grow it. */
+    private final Set<String> missing = ConcurrentHashMap.newKeySet();
 
     PluginMessages(PluginClassLoader loader, Path overrides, String serverLanguage, Logger logger) {
         this.loader = loader;
@@ -67,9 +71,25 @@ final class PluginMessages implements Messages {
         return key;
     }
 
-    /** Each language file is read once; nested sections become dotted keys like menu.title. */
+    /**
+     * Each language file is read once; nested sections become dotted keys like menu.title. Languages without a
+     * file are remembered as missing only up to a limit, since the client chooses the code.
+     */
     private Map<String, String> load(String language) {
-        return languages.computeIfAbsent(language, this::read);
+        Map<String, String> known = languages.get(language);
+        if (known != null) {
+            return known;
+        }
+        if (missing.contains(language)) {
+            return Map.of();
+        }
+        Map<String, String> read = read(language);
+        if (!read.isEmpty() || language.equals(serverLanguage) || language.equals(FALLBACK)) {
+            languages.put(language, read);
+        } else if (missing.size() < MISSING_LIMIT) {
+            missing.add(language);
+        }
+        return read;
     }
 
     private Map<String, String> read(String language) {

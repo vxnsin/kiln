@@ -48,7 +48,10 @@ public final class NetworkService {
 
     public void start() {
         MinecraftServer.getSchedulerManager().buildTask(this::announce).repeat(HEARTBEAT).schedule();
-        MinecraftServer.getSchedulerManager().buildShutdownTask(() -> bus.publish(LEAVING, GSON.toJson(serverId)));
+        MinecraftServer.getSchedulerManager().buildShutdownTask(() -> {
+            bus.publish(LEAVING, GSON.toJson(serverId));
+            bus.close();
+        });
     }
 
     public String serverId() {
@@ -100,7 +103,12 @@ public final class NetworkService {
         }
         int colon = server.address().lastIndexOf(':');
         String host = colon < 0 ? server.address() : server.address().substring(0, colon);
-        int port = colon < 0 ? 25565 : Integer.parseInt(server.address().substring(colon + 1));
+        int port;
+        try {
+            port = colon < 0 ? 25565 : Integer.parseInt(server.address().substring(colon + 1));
+        } catch (NumberFormatException badAddress) {
+            return false;
+        }
         player.getPlayerConnection().transfer(host, port);
         return true;
     }

@@ -6,7 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.ConsoleSender;
 import net.minestom.server.entity.Player;
@@ -15,7 +15,7 @@ import net.minestom.server.entity.Player;
 public final class Operators {
 
     private final Path file;
-    private final Set<String> names = new TreeSet<>();
+    private final Set<String> names = new ConcurrentSkipListSet<>();
 
     public Operators(Path file) throws IOException {
         this.file = file;

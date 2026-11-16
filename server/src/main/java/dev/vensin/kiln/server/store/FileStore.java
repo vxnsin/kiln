@@ -60,9 +60,11 @@ public final class FileStore implements Store {
         @Override
         public void put(String key, T value) {
             Path file = directory.resolve(safe(key) + SUFFIX);
-            Path temporary = directory.resolve(safe(key) + ".tmp");
+            String name = safe(key);
             try {
                 Files.createDirectories(directory);
+                // Each write gets its own temporary file, so two saves of the same key cannot mix their bytes.
+                Path temporary = Files.createTempFile(directory, name + "-", ".tmp");
                 Files.writeString(temporary, GSON.toJson(value, type), StandardCharsets.UTF_8);
                 Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {

@@ -8,13 +8,21 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/** Loads every registered value while a player is still connecting, which happens off the tick thread. */
+/**
+ * Loads every registered value while a player is still connecting, which happens off the tick thread. A value
+ * leaves memory only after it was written, so a storage failure keeps it for the next save instead of losing it.
+ */
 public final class PlayerDataManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PlayerDataManager.class);
 
     private final List<Loaded<?>> all = new CopyOnWriteArrayList<>();
 
@@ -24,7 +32,11 @@ public final class PlayerDataManager {
                 all.forEach(data -> data.load(event.getPlayer().getUuid()));
             }
         });
-        events.addListener(PlayerDisconnectEvent.class, event -> all.forEach(data -> data.unload(event.getPlayer().getUuid())));
+        // Plugins see the disconnect after Kiln; unloading on the next tick lets their last changes go along.
+        events.addListener(PlayerDisconnectEvent.class, event -> {
+            UUID id = event.getPlayer().getUuid();
+            MinecraftServer.getSchedulerManager().scheduleNextTick(() -> all.forEach(data -> data.unload(id)));
+        });
     }
 
     public <T> PlayerData<T> create(Table<T> table, Supplier<T> fresh) {
@@ -35,8 +47,9 @@ public final class PlayerDataManager {
 
     /** Saves what is loaded and stops tracking it, for a plugin that is being unloaded. */
     public void remove(PlayerData<?> data) {
-        if (data instanceof Loaded<?> loaded && all.remove(loaded)) {
+        if (data instanceof Loaded<?> loaded) {
             loaded.saveAll();
+            all.remove(loaded);
         }
     }
 
@@ -73,14 +86,25 @@ public final class PlayerDataManager {
         }
 
         private void unload(UUID id) {
-            T value = values.remove(id);
-            if (value != null) {
-                table.put(id.toString(), value);
+            T value = values.get(id);
+            if (value != null && write(id, value)) {
+                values.remove(id, value);
             }
         }
 
+        /** Every value gets its own try, so one failing write does not keep the others from being saved. */
         private void saveAll() {
-            values.forEach((id, value) -> table.put(id.toString(), value));
+            values.forEach(this::write);
+        }
+
+        private boolean write(UUID id, T value) {
+            try {
+                table.put(id.toString(), value);
+                return true;
+            } catch (RuntimeException e) {
+                LOG.error("Player data for {} could not be saved and stays in memory: {}", id, e.getMessage());
+                return false;
+            }
         }
     }
 }

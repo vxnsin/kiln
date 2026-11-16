@@ -36,12 +36,12 @@ public final class PluginManager {
         this.services = services;
     }
 
-    public List<Loaded> loaded() {
+    public synchronized List<Loaded> loaded() {
         return List.copyOf(loaded.values());
     }
 
     /** Failures since the last call of {@link #loadNew()}. */
-    public List<Failure> failures() {
+    public synchronized List<Failure> failures() {
         return List.copyOf(failures);
     }
 
@@ -193,7 +193,11 @@ public final class PluginManager {
         } catch (RuntimeException | LinkageError e) {
             fail(plugin.info().name(), plugin.info().version(), "error while disabling: " + e, e);
         }
-        plugin.context().close();
+        try {
+            plugin.context().close();
+        } catch (RuntimeException e) {
+            fail(plugin.info().name(), plugin.info().version(), "error while cleaning up: " + e, e);
+        }
         closeQuietly(plugin.loader(), plugin.copy());
     }
 

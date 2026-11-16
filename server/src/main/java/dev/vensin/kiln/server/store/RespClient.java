@@ -48,7 +48,9 @@ public final class RespClient implements AutoCloseable {
         try (RespClient subscriber = new RespClient(uri)) {
             subscriber.connect(0);
             subscriber.write(new String[] {"PSUBSCRIBE", pattern});
-            subscriber.read();
+            if (subscriber.read() instanceof RespError error) {
+                throw new IOException("subscribing was refused: " + error.message());
+            }
             while (true) {
                 if (subscriber.read() instanceof List<?> message && message.size() == 4 && "pmessage".equals(message.get(0))) {
                     listener.accept(String.valueOf(message.get(2)), String.valueOf(message.get(3)));
@@ -77,6 +79,7 @@ public final class RespClient implements AutoCloseable {
         Socket created = new Socket();
         created.connect(new InetSocketAddress(uri.getHost(), uri.getPort() > 0 ? uri.getPort() : 6379), TIMEOUT_MILLIS);
         created.setSoTimeout(readTimeout);
+        created.setKeepAlive(true);
         socket = created;
         in = new BufferedInputStream(created.getInputStream());
         out = created.getOutputStream();
