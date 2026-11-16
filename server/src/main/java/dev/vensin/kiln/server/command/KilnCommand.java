@@ -1,6 +1,7 @@
 package dev.vensin.kiln.server.command;
 
 import dev.vensin.kiln.server.console.InteractiveConsole;
+import dev.vensin.kiln.server.pack.ResourcePackHost;
 import dev.vensin.kiln.server.plugin.PluginManager;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,6 +39,7 @@ public final class KilnCommand {
         HELP.put("update", "look for a newer release and fetch it");
         HELP.put("maintenance", "let only operators and allowed players in");
         HELP.put("group", "permission groups from permissions.yml");
+        HELP.put("pack", "read the resource pack again and send it to everyone");
         HELP.put("op [name]", "give a player admin rights");
         HELP.put("deop [name]", "take them away again");
         HELP.put("stop", "save and shut down");
@@ -48,20 +50,23 @@ public final class KilnCommand {
     private final PluginManager plugins;
     private final Maintenance maintenance;
     private final String version;
+    private final ResourcePackHost pack;
 
     private KilnCommand(Operators operators, Permissions permissions, PluginManager plugins, Maintenance maintenance,
-                        String version) {
+                        String version, ResourcePackHost pack) {
         this.operators = operators;
         this.permissions = permissions;
         this.plugins = plugins;
         this.maintenance = maintenance;
         this.version = version;
+        this.pack = pack;
     }
 
     public static KilnCommand register(CommandManager commands, Operators operators, Permissions permissions,
                                        PluginManager plugins,
-                                Performance performance, Maintenance maintenance, String version) {
-        KilnCommand kiln = new KilnCommand(operators, permissions, plugins, maintenance, version);
+                                Performance performance, Maintenance maintenance, String version,
+                                ResourcePackHost pack) {
+        KilnCommand kiln = new KilnCommand(operators, permissions, plugins, maintenance, version, pack);
         Command root = new Command(NAME);
         root.setDefaultExecutor((sender, context) -> {
             if (permissions.has(sender, "kiln.help")) {
@@ -85,6 +90,7 @@ public final class KilnCommand {
                 kiln.withName("deop", "deop", (sender, name) -> kiln.change(sender, name, false)),
                 kiln.maintenanceCommand(),
                 kiln.groupCommand(),
+                kiln.admin("pack", "kiln.pack", (sender, context) -> kiln.resendPack(sender)),
                 kiln.admin("stop", "kiln.stop", (sender, context) -> kiln.stop(sender)));
 
         // Typing just "stop" into a console is a habit worth keeping.
@@ -333,6 +339,21 @@ public final class KilnCommand {
             Chat.error(sender, e.getMessage());
         } catch (IOException e) {
             Chat.error(sender, "Could not save permissions.yml: " + e.getMessage());
+        }
+    }
+
+    private void resendPack(CommandSender sender) {
+        if (pack == null) {
+            Chat.say(sender, "<gray>No resource pack. Drop pack.zip next to the server and restart.</gray>");
+            return;
+        }
+        try {
+            String hash = pack.reload();
+            pack.sendToAll();
+            Chat.say(sender, "<green>Resource pack sent to everyone.</green> <gray>" + pack.size() + ", "
+                    + hash.substring(0, 10) + "</gray>");
+        } catch (IOException e) {
+            Chat.error(sender, "Could not read the resource pack: " + e.getMessage());
         }
     }
 }

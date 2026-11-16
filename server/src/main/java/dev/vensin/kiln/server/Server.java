@@ -11,6 +11,7 @@ import dev.vensin.kiln.server.console.ConsoleInput;
 import dev.vensin.kiln.server.console.InteractiveConsole;
 import dev.vensin.kiln.server.console.StartReport;
 import dev.vensin.kiln.server.console.Terminal;
+import dev.vensin.kiln.server.pack.ResourcePackHost;
 import dev.vensin.kiln.server.plugin.PluginManager;
 import dev.vensin.kiln.server.plugin.PluginServices;
 import dev.vensin.kiln.server.plugin.PluginWatcher;
@@ -128,6 +129,25 @@ final class Server {
             }
         }
 
+        StartReport.Step packing = report.begin("Pack", "preparing the resource pack");
+        ResourcePackHost pack = null;
+        Path packFile = Path.of(settings.packFile());
+        if (settings.packFile().isBlank() || !Files.isRegularFile(packFile)) {
+            packing.ok("none, drop " + (settings.packFile().isBlank() ? "pack.zip" : settings.packFile()) + " next to the server");
+        } else {
+            pack = new ResourcePackHost(new ResourcePackHost.Options(packFile, settings.packHost(), settings.packPort(),
+                    settings.packUrl(), settings.packRequired(), settings.packPrompt()));
+            try {
+                pack.start();
+                ResourcePackHost host = pack;
+                events.addListener(AsyncPlayerConfigurationEvent.class, event -> host.send(event.getPlayer()));
+                packing.ok(host.size() + " " + Ansi.DOT + " " + host.url());
+            } catch (IOException e) {
+                packing.warn("could not serve " + settings.packFile() + ": " + e.getMessage());
+                pack = null;
+            }
+        }
+
         // The defaults above are registered first, so a plugin listening to the same event has the last word.
         StartReport.Step loading = report.beginQuietly("Plugins");
         PlayerDataManager playerData = new PlayerDataManager();
@@ -140,8 +160,7 @@ final class Server {
 
         StartReport.Step opening = report.begin("Ready", "letting players in");
         KilnCommand kiln = KilnCommand.register(MinecraftServer.getCommandManager(), operators, permissions, plugins,
-                performance,
-                maintenance, version);
+                performance, maintenance, version, pack);
         if (settings.watchPlugins()) {
             watch(plugins, kiln);
         }

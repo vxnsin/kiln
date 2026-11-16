@@ -39,6 +39,19 @@ world: flat
 # Handy while developing; turn it off if you would rather decide yourself with kiln reload.
 watch-plugins: true
 
+# A resource pack for every player. Drop pack.zip next to the server and it is sent on join; no file, no pack.
+resource-pack:
+  file: pack.zip
+  # Address players download it from. Empty: the LAN address of this machine. Put your public address or
+  # domain here when players connect over the internet, and open the port in your firewall.
+  host: ""
+  port: 8164
+  # Serve the pack from somewhere else instead, e.g. a CDN. The file there must be exactly the local one.
+  public-url: ""
+  # true: players who decline the pack cannot join.
+  required: false
+  prompt: ""
+
 # Port of a small HTTP endpoint for container platforms: GET /health answers 200 once the server takes players
 # and 503 before that, with player counts as JSON. 0 turns it off.
 health-port: 0

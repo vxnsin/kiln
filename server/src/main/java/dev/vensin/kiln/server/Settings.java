@@ -15,7 +15,9 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 public record Settings(String host, int port, boolean onlineMode, String velocitySecret, String motd,
                        String maintenanceMotd, int maxPlayers, String world, boolean watchPlugins, String name,
-                       String colorFrom, String colorTo, int healthPort, int stopWhenEmpty, String language) {
+                       String colorFrom, String colorTo, int healthPort, int stopWhenEmpty, String language,
+                       String packFile, String packHost, int packPort, String packUrl, boolean packRequired,
+                       String packPrompt) {
 
     private static final String DEFAULTS = "kiln.yml";
 
@@ -52,7 +54,13 @@ public record Settings(String host, int port, boolean onlineMode, String velocit
                 values.text("colors.to", "#ffd700"),
                 values.number("health-port", 0),
                 values.number("stop-when-empty", 0),
-                values.text("language", "en").toLowerCase(Locale.ROOT));
+                values.text("language", "en").toLowerCase(Locale.ROOT),
+                values.text("resource-pack.file", "pack.zip"),
+                values.text("resource-pack.host", ""),
+                values.number("resource-pack.port", 8164),
+                values.text("resource-pack.public-url", ""),
+                values.flag("resource-pack.required", false),
+                values.text("resource-pack.prompt", ""));
     }
 
     private record Values(Map<String, Object> yaml, Function<String, String> environment) {

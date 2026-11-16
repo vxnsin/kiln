@@ -32,7 +32,7 @@ memory.
 - **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and Kiln
   picks the file that matches each player's Minecraft language. Server owners can edit the texts in
   `plugins/<name>/lang/` without touching the jar.
-- **One command for the server itself.** `/kiln` with `plugins`, `reload`, `load`, `unload`, `players`, `performance`, `group`,
+- **One command for the server itself.** `/kiln` with `plugins`, `reload`, `load`, `unload`, `players`, `performance`, `group`, `pack`,
   `maintenance`, `version`, `update`, `op`, `deop` and `stop`, in the console with tab completion and in
   game for operators.
 - **One settings file.** `kiln.yml` is written on first start, with a comment on every option. It also holds
@@ -48,6 +48,8 @@ memory.
   gets a clear screen, the server list shows it, and the setting survives a restart.
 - **Behind a proxy.** Put the forwarding secret of your Velocity proxy into `kiln.yml` and players come
   through the proxy only.
+- **A resource pack without a web host.** Drop `pack.zip` next to the server. Kiln serves it, sends it to
+  everyone who joins and resends it with `/kiln pack` after you changed it.
 - **Worlds from files.** Drop a world saved in singleplayer or on a Paper server into `worlds/`. Every
   `open` hands out a fresh copy that is never written back, so each round starts on the same map.
 - **A place to stand.** A flat default world, so the server is joinable before any plugin exists. Plugins
@@ -204,6 +206,7 @@ What a plugin gets from Kiln:
 ```
 kiln-0.1.0.jar
 kiln.yml        settings
+pack.zip        resource pack sent to every player, if present
 ops.txt         operators, one name per line
 permissions.yml groups and who is in them
 plugins/        plugin jars and their config folders
