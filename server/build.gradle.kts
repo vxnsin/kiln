@@ -26,6 +26,11 @@ tasks.processResources {
     val props = mapOf("version" to project.version, "minecraft" to providers.gradleProperty("minecraftVersion").get())
     inputs.properties(props)
     filesMatching("version.properties") { expand(props) }
+    // The plugin template ships its own Gradle wrapper, taken from this build's.
+    from(rootProject.layout.projectDirectory) {
+        include("gradlew", "gradlew.bat", "gradle/wrapper/**")
+        into("template/wrapper")
+    }
 }
 
 tasks.named<JavaExec>("run") {

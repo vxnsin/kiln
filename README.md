@@ -153,6 +153,26 @@ docker run -p 25565:25565 -p 8080:8080 -e KILN_STOP_WHEN_EMPTY=30 -v ./server:/s
 
 ## Write a plugin
 
+In the folder of your server:
+
+```bash
+java -jar kiln.jar new my-plugin
+```
+
+That creates a ready Gradle project in `my-plugin/` that compiles against the server jar and, on every build,
+drops itself into `plugins/`. Leave the server running, build, and the new code is live in about a second:
+
+```bash
+cd my-plugin
+```
+
+```bash
+./gradlew build
+```
+
+### What a plugin looks like
+
+
 A plugin is a jar with one class and one file.
 
 `src/main/resources/kiln-plugin.yml`

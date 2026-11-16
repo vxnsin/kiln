@@ -1,0 +1,1 @@
+hello: "<gold>Hello, <name>!</gold> <gray>This message comes from {{name}}.</gray>"
