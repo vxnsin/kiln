@@ -1,13 +1,16 @@
-The first release of Kiln: a Minestom server that is ready to run. Download `kiln-<version>.jar`, start it with
+The first release of Kiln: a Minestom server that is ready to run. Download `kiln.jar`, start it with
 Java 25, and connect with Minecraft 26.2.
 
 ### While you build
 
-- Plugins swap on their own when their jar changes, together with the plugins that depend on them
-- `java -jar kiln.jar new my-plugin` creates a plugin project that builds straight into the running server
+- Plugins swap on their own when their jar changes, together with the plugins that depend on them, and a build
+  that fails to start leaves the previous version running
+- `java -jar kiln.jar new my-plugin` creates a plugin project that builds straight into the running server and
+  publishes itself as a GitHub release when you push a tag
+- `/kiln install owner/repo` fetches a plugin from a GitHub release
 - `/kiln performance`, the dashboard and `/metrics` show each plugin's time per tick
 - `/kiln profile` samples the server threads and names the busiest methods and plugins
-- Player data, key-value tables, config files and translated texts in one line each
+- Player data with autosave, key-value tables, config files read into classes, and translated texts
 
 ### While it runs
 
@@ -28,4 +31,5 @@ Java 25, and connect with Minecraft 26.2.
 - Velocity forwarding, settings from environment variables, a health check, stop when empty, a Dockerfile and
   a container image on GitHub Packages
 
-The plugin API is `kiln-api-<version>.jar` in the assets below. See the README and `docs/plugins.md`.
+`kiln.jar` below is the server, `kiln-api.jar` the plugin API. The README, `docs/plugins.md` and
+`docs/running.md` explain the rest.
