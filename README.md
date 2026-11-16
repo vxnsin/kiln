@@ -129,6 +129,7 @@ Everything about folders, containers, networks of servers and monitoring is in [
 |---|---|
 | `/kiln plugins` | Loaded plugins and their versions |
 | `/kiln reload <plugin>`, `load`, `unload <plugin>` | Swap, add or remove plugins on the running server |
+| `/kiln install <owner/repo>` | Fetch a plugin from the latest GitHub release of a repository, or from a https link |
 | `/kiln performance` (`perf`) | Ticks, memory, CPU, the world and each plugin's time per tick |
 | `/kiln profile [seconds]` | Watch the server threads and list the busiest methods and plugins |
 | `/kiln players` | Who is online |

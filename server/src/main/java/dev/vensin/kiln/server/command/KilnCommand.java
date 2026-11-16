@@ -41,6 +41,7 @@ public final class KilnCommand {
         HELP.put("reload [plugin]", "swap a plugin for the jar now in the folder");
         HELP.put("load", "load jars that were added to the folder");
         HELP.put("unload [plugin]", "take a plugin out");
+        HELP.put("install [owner/repo]", "fetch a plugin from a GitHub release or a https link");
         HELP.put("profile [seconds]", "which methods and plugins the server threads spend their time in");
         HELP.put("players", "who is online");
         HELP.put("servers", "every server in the network and its players");
@@ -112,6 +113,7 @@ public final class KilnCommand {
                 kiln.admin("load", "kiln.load", (sender, context) -> MinecraftServer.getSchedulerManager()
                         .scheduleNextTick(() -> kiln.load(sender))),
                 kiln.withPlugin("unload", (sender, name) -> kiln.unload(sender, name, true)),
+                kiln.installCommand(),
                 kiln.profileCommand(),
                 kiln.admin("performance", "kiln.performance", (sender, context) -> performance.report(sender), "perf"),
                 kiln.admin("version", "kiln.version", (sender, context) -> kiln.version(sender)),
@@ -624,6 +626,33 @@ public final class KilnCommand {
         });
         Command command = admin("profile", "kiln.profile", (sender, context) -> profiler.run(sender, 10));
         command.addSyntax((sender, context) -> profiler.run(sender, context.get(seconds)), seconds);
+        return command;
+    }
+
+    private Command installCommand() {
+        ArgumentWord source = ArgumentType.Word("source");
+        PluginInstaller installer = new PluginInstaller(Path.of("plugins"));
+        Command command = admin("install", "kiln.install",
+                (sender, context) -> Chat.say(sender, "<gray>Usage: /kiln install [owner/repo or https link to a jar]</gray>"));
+        command.addSyntax((sender, context) -> Thread.ofVirtual().start(() -> {
+            Chat.say(sender, "<gray>Downloading " + MiniMessage.miniMessage().escapeTags(context.get(source)) + "...</gray>");
+            try {
+                PluginInstaller.Installed installed = installer.install(context.get(source));
+                Chat.say(sender, "<green>" + installed.name() + " " + installed.version() + " downloaded.</green>");
+                boolean present = plugins.loaded().stream().anyMatch(loaded -> loaded.info().name().equals(installed.name()));
+                MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                    if (present) {
+                        reload(sender, installed.name());
+                    } else {
+                        load(sender);
+                    }
+                });
+            } catch (IOException e) {
+                Chat.error(sender, "Could not install it: " + e.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }), source);
         return command;
     }
 }
