@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
+import net.minestom.server.command.builder.condition.CommandCondition;
 import org.slf4j.Logger;
 
 /** What the server hands to a plugin. Instances, entities and the rest are plain Minestom. */
@@ -60,4 +61,7 @@ public interface Kiln {
      * Operators and the console hold every permission. A trailing {@code .*} grants everything below it.
      */
     boolean hasPermission(CommandSender sender, String permission);
+
+    /** A command condition for {@code command.setCondition(kiln.requires("myplugin.use"))}; hides it from the rest. */
+    CommandCondition requires(String permission);
 }

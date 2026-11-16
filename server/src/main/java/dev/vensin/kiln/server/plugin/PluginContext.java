@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandSender;
 import net.minestom.server.command.builder.Command;
+import net.minestom.server.command.builder.condition.CommandCondition;
 import net.minestom.server.event.Event;
 import net.minestom.server.event.EventNode;
 import org.slf4j.Logger;
@@ -184,5 +185,10 @@ final class PluginContext implements Kiln {
     @Override
     public boolean hasPermission(CommandSender sender, String permission) {
         return permissions.has(sender, permission);
+    }
+
+    @Override
+    public CommandCondition requires(String permission) {
+        return (sender, input) -> permissions.has(sender, permission);
     }
 }

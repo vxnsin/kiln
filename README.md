@@ -135,7 +135,7 @@ Everything a round server needs is a setting:
 
 | Option | Environment variable | What it does |
 |---|---|---|
-| `web-port` | `KILN_WEB_PORT` | A live dashboard at `/`, `GET /stats` as JSON, and `GET /health`: 200 once players can join, 503 before |
+| `web-port` | `KILN_WEB_PORT` | A live dashboard at `/`, `/stats` as JSON, `/metrics` for Prometheus, and `/health`: 200 once players can join, 503 before |
 | `stop-when-empty` | `KILN_STOP_WHEN_EMPTY` | Shuts down this many seconds after the last player left |
 | `world` | `KILN_WORLD` | The map players land in, from `worlds/` |
 | `velocity-secret` | `KILN_VELOCITY_SECRET` | Accept players only through your Velocity proxy |
@@ -252,6 +252,7 @@ What a plugin gets from Kiln:
 | `kiln.dataFolder()` | `plugins/<name>/` for the plugin's own files |
 | `kiln.logger()` | A logger whose lines are tagged with the plugin name |
 | `kiln.hasPermission(sender, permission)` | Whether a player holds a permission through their groups |
+| `kiln.requires(permission)` | A command condition: `command.setCondition(kiln.requires("myplugin.use"))` |
 | `kiln.isOperator(sender)` | Whether a command sender has admin rights |
 
 ## Folder layout
