@@ -8,6 +8,14 @@ dependencies {
     api(libs.slf4j)
 }
 
+tasks.jar {
+    archiveBaseName.set("kiln-api")
+}
+
+tasks.named<Jar>("sourcesJar") {
+    archiveBaseName.set("kiln-api")
+}
+
 java {
     withSourcesJar()
 }
