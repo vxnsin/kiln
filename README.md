@@ -105,27 +105,23 @@ that built in, and neither has Kiln.
 
 ## Run it
 
-You need Java 25. Build the jar:
+You need Java 25. Download [`kiln.jar`](https://github.com/vxnsin/kiln/releases/latest/download/kiln.jar) from the
+latest release, put it in an empty folder and start it:
 
 ```bash
-git clone https://github.com/vxnsin/kiln
-```
-
-```bash
-cd kiln
-```
-
-```bash
-./gradlew :server:jar
-```
-
-The result is `server/build/libs/kiln-0.1.0.jar`. Put it in an empty folder and start it:
-
-```bash
-java -jar kiln-0.1.0.jar
+java -jar kiln.jar
 ```
 
 Connect with Minecraft 26.2 to `localhost`. To make yourself operator, type `kiln op <your name>` into the console.
+
+Or run the container image:
+
+```bash
+docker run -p 25565:25565 -v ./server:/server ghcr.io/vxnsin/kiln
+```
+
+To build it yourself, clone the repository and run `./gradlew :server:jar`; the jar lands in
+`server/build/libs/`.
 
 Everything about folders, containers, networks of servers and monitoring is in [docs/running.md](docs/running.md).
 
@@ -294,7 +290,7 @@ What a plugin gets from Kiln:
 ## Folder layout
 
 ```
-kiln-0.1.0.jar
+kiln.jar
 kiln.yml        settings
 pack.zip        resource pack sent to every player, if present
 ops.txt         operators, one name per line
