@@ -6,14 +6,9 @@ java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 }
 
-repositories {
-    mavenCentral()
-    maven("https://vxnsin.github.io/kiln/maven")
-}
-
 dependencies {
-    // The Kiln API brings Minestom and Adventure along; the server provides all of them at runtime.
-    compileOnly("dev.vensin.kiln:kiln-api:{{kilnVersion}}")
+    // The server jar itself holds the Kiln API, Minestom and Adventure.
+    compileOnly(files("{{kilnJar}}"))
 }
 
 tasks.withType<JavaCompile>().configureEach {

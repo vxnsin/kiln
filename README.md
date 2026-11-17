@@ -191,7 +191,7 @@ In the folder of your server:
 java -jar kiln.jar new my-plugin
 ```
 
-That creates a ready Gradle project in `my-plugin/` that takes the Kiln API from Maven and, on every build,
+That creates a ready Gradle project in `my-plugin/` that compiles against the server jar and, on every build,
 drops itself into `plugins/`. Leave the server running, build, and the new code is live in about a second:
 
 ```bash
@@ -247,28 +247,36 @@ passed to `kiln.commands(...)`, timers from `kiln.tasks()`, worlds from `kiln.wo
 Threads and executors a plugin starts itself are its
 own to stop in `disable()`.
 
-For a project of your own, the API comes from Kiln's Maven repository. No account or token is needed.
+For a project of your own, the API is on
+[GitHub Packages](https://github.com/vxnsin/kiln/packages). GitHub asks for a token even for public packages:
+create a classic token with `read:packages` and put it into `~/.gradle/gradle.properties` as `gpr.user=<your
+GitHub name>` and `gpr.key=<token>`. In GitHub Actions, the workflow's own token works.
 
 Gradle:
 
 ```kotlin
 repositories {
     mavenCentral()
-    maven("https://vxnsin.github.io/kiln/maven")
+    maven("https://maven.pkg.github.com/vxnsin/kiln") {
+        credentials {
+            username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+            password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
 
 dependencies {
-    compileOnly("dev.vensin.kiln:kiln-api:0.1.0")
+    compileOnly("dev.vensin.kiln:kiln-api:0.1.1")
 }
 ```
 
-Maven:
+Maven, with the token as server `github` in `~/.m2/settings.xml`:
 
 ```xml
 <repositories>
     <repository>
-        <id>kiln</id>
-        <url>https://vxnsin.github.io/kiln/maven</url>
+        <id>github</id>
+        <url>https://maven.pkg.github.com/vxnsin/kiln</url>
     </repository>
 </repositories>
 
@@ -276,7 +284,7 @@ Maven:
     <dependency>
         <groupId>dev.vensin.kiln</groupId>
         <artifactId>kiln-api</artifactId>
-        <version>0.1.0</version>
+        <version>0.1.1</version>
         <scope>provided</scope>
     </dependency>
 </dependencies>

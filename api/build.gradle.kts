@@ -38,11 +38,13 @@ publishing {
         }
     }
     repositories {
-        // The release workflow passes the gh-pages checkout, which GitHub Pages serves as a Maven repository.
-        findProperty("pagesRepo")?.let { folder ->
-            maven {
-                name = "pages"
-                url = uri(folder)
+        // The release workflow publishes here with its own token.
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/vxnsin/kiln")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
             }
         }
     }

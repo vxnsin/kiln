@@ -4,6 +4,9 @@ COPY . .
 RUN chmod +x gradlew && ./gradlew --no-daemon :server:jar
 
 FROM eclipse-temurin:25-jre
+LABEL org.opencontainers.image.source="https://github.com/vxnsin/kiln" \
+      org.opencontainers.image.description="Kiln, a Minestom server that is ready to run" \
+      org.opencontainers.image.licenses="MIT"
 COPY --from=build /src/server/build/libs/kiln-*.jar /opt/kiln/kiln.jar
 WORKDIR /server
 VOLUME /server
