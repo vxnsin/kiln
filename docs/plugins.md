@@ -157,6 +157,49 @@ kiln.tasks().nextTick(() -> world.setBlock(0, 64, 0, Block.GOLD_BLOCK));
 
 Timers end with the plugin and count towards its time in `/kiln performance`.
 
+## Rounds
+
+Most minigames go the same way: wait for enough players, count down, play, end. `kiln.rounds()` does that
+part:
+
+```java
+Round round = kiln.rounds().create(arena)
+        .minPlayers(2)
+        .countdown(Duration.ofSeconds(10))
+        .onStart(players -> players.forEach(player -> player.setGameMode(GameMode.SURVIVAL)))
+        .onEnd(players -> players.forEach(player -> player.sendMessage("Good game!")));
+
+kiln.events().on(PlayerDeathEvent.class, event -> {
+    if (round.state() == Round.State.RUNNING && alive(round).size() <= 1) {
+        round.end();
+    }
+});
+```
+
+While it waits, players in the world see in their action bar how many are there and how many it takes. The
+countdown runs in the action bar, the last five seconds as a title with a tick sound. It stops again if
+players leave and the count drops below the minimum. `round.start()` skips the wait, and a running round with
+nobody left in its world ends by itself.
+
+`/stats` on the web port lists every round with its plugin, state and players, so a matchmaker can send
+players to a server that is still waiting. With `stop-after-round` in `kiln.yml` the server stops that many
+seconds after a round ended, which fits servers that live for one round.
+
+## Menus
+
+```java
+kiln.menus().chest(3, Component.text("Shop"))
+        .button(11, ItemStack.of(Material.IRON_SWORD), player -> buy(player, "sword"))
+        .button(15, ItemStack.of(Material.BOW), player -> buy(player, "bow"))
+        .fill(ItemStack.of(Material.GRAY_STAINED_GLASS_PANE))
+        .open(player);
+```
+
+Items in a menu cannot be taken out or moved, and shift clicks from the player's own inventory are blocked
+while it is open. Everyone who opens the same menu sees the same items, and changes show up for them at once,
+so build one per player when the content is personal. Open menus are closed when the plugin is unloaded or
+swapped.
+
 ## A round on its own map
 
 Worlds live as folders in `worlds/`, saved in singleplayer or on any other server. `open` gives a fresh copy
@@ -218,7 +261,8 @@ which is the address players use to reach it.
 ## Swapping safely
 
 Kiln removes, on unload or swap: listeners from `kiln.events()`, commands from `kiln.commands()`, timers from
-`kiln.tasks()`, worlds from `kiln.worlds()`, network subscriptions, and it saves player data. What it cannot
+`kiln.tasks()`, worlds from `kiln.worlds()`, network subscriptions, open menus and rounds, and it saves player
+data. What it cannot
 see is yours to stop in `disable()`: threads, executors, sockets, listeners on the global event handler.
 
 If the new build throws in `enable`, Kiln starts the previous version again and says so in the console.

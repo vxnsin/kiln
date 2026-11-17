@@ -34,6 +34,8 @@ memory.
   methods that cost the most time, and the plugins they belong to.
 - **Player data in one line.** A value per player, loaded while they connect, saved when they leave and every
   five minutes in between.
+- **Rounds and menus built in.** `kiln.rounds()` waits for players, counts down, starts and ends a round, and
+  `kiln.menus()` builds chest menus with buttons whose items cannot be taken out.
 - **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and each
   player gets the file that matches their Minecraft language.
 
@@ -163,6 +165,7 @@ Everything a round server needs is a setting:
 |---|---|---|
 | `web-port` | `KILN_WEB_PORT` | A live dashboard at `/`, `/stats` as JSON, `/metrics` for Prometheus, and `/health`: 200 once players can join, 503 before |
 | `stop-when-empty` | `KILN_STOP_WHEN_EMPTY` | Shuts down this many seconds after the last player left |
+| `stop-after-round` | `KILN_STOP_AFTER_ROUND` | Shuts down this many seconds after a plugin's round ended, with a countdown everyone sees |
 | `world` | `KILN_WORLD` | The map players land in, from `worlds/` |
 | `velocity-secret` | `KILN_VELOCITY_SECRET` | Accept players only through your Velocity proxy |
 | `storage.type`, `storage.redis` | `KILN_STORAGE_TYPE`, `KILN_STORAGE_REDIS` | Keep data in Redis or Dragonfly, so every round server sees the same players |
@@ -242,7 +245,7 @@ and German, is in
 [`example-plugin/`](example-plugin).
 
 Swapping works because Kiln knows what belongs to a plugin: listeners added with `kiln.events().on(...)`, commands
-passed to `kiln.commands(...)`, timers from `kiln.tasks()`, worlds from `kiln.worlds()` and its player data.
+passed to `kiln.commands(...)`, timers from `kiln.tasks()`, worlds from `kiln.worlds()`, open menus, rounds and its player data.
 Threads and executors a plugin starts itself are its
 own to stop in `disable()`.
 
@@ -274,6 +277,8 @@ What a plugin gets from Kiln:
 | `kiln.network().publish(channel, message)` | Reach the same plugin on every server; `subscribe` to listen |
 | `kiln.worlds().open(name)` | A fresh copy of a world from `worlds/`, closed again when the plugin goes |
 | `kiln.tasks().every(interval, action)` | Timers that stop when the plugin is unloaded or swapped |
+| `kiln.rounds().create(world)` | Waiting, countdown, start and end of a round, listed in `/stats` |
+| `kiln.menus().chest(rows, title)` | A chest menu with buttons, closed for everyone when the plugin goes |
 | `kiln.messages().send(player, key, ...)` | Texts from `lang/<language>.yml`, in the language of the player's client |
 | `kiln.config()`, `kiln.config(MyConfig.class)` | `plugins/<name>/config.yml` as a map or read into a class, copied from the jar on first start |
 | `kiln.dataFolder()` | `plugins/<name>/` for the plugin's own files |

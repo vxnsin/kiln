@@ -11,6 +11,7 @@ Java 25, and connect with Minecraft 26.2.
 - `/kiln performance`, the dashboard and `/metrics` show each plugin's time per tick
 - `/kiln profile` samples the server threads and names the busiest methods and plugins
 - Player data with autosave, key-value tables, config files read into classes, and translated texts
+- Rounds that wait for players, count down, start and end, and chest menus with buttons
 
 ### While it runs
 
@@ -30,7 +31,7 @@ Java 25, and connect with Minecraft 26.2.
 - Storage in files, Redis, Valkey, Dragonfly or MongoDB, chosen in `kiln.yml`
 - Servers sharing a Redis find each other: `/kiln servers`, `/kiln find`, messages between plugins
 - `/kiln send` moves players between servers with Minecraft's transfer, no proxy needed
-- Velocity forwarding, settings from environment variables, a health check, stop when empty, a Dockerfile and
+- Velocity forwarding, settings from environment variables, a health check, stop when empty or after a round, a Dockerfile and
   a container image on GitHub Packages
 
 `kiln.jar` below is the server, `kiln-api.jar` the plugin API. The README, `docs/plugins.md` and
