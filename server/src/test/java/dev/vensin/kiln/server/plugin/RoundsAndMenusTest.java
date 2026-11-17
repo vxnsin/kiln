@@ -66,6 +66,18 @@ class RoundsAndMenusTest {
     }
 
     @Test
+    void hologramsInAnEmptyWorldCanBeChangedAndRemoved() {
+        PluginHolograms holograms = new PluginHolograms(new PluginEvents(EventNode.all("hologram-test"), new PluginTiming()));
+        Instance world = MinecraftServer.getInstanceManager().createInstanceContainer();
+
+        var hologram = holograms.create(world, new net.minestom.server.coordinate.Pos(0, 64, 0), Component.text("Hi"));
+        hologram.text(player -> Component.text("Hi " + player.getUsername()));
+        hologram.teleport(new net.minestom.server.coordinate.Pos(1, 65, 1));
+        holograms.removeAll();
+        assertTrue(world.getEntities().isEmpty());
+    }
+
+    @Test
     void menuChecksRowsAndSlots() {
         PluginMenus menus = new PluginMenus(new PluginEvents(EventNode.all("menu-test"), new PluginTiming()));
         assertThrows(IllegalArgumentException.class, () -> menus.chest(7, Component.text("too big")));

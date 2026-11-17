@@ -217,6 +217,24 @@ A list of lines is all it takes: the first one sits on top, up to fifteen are sh
 right are hidden. Calling `show` again sends only the lines that changed. `hide` takes it away, and every
 sidebar a plugin showed disappears when it is unloaded or swapped.
 
+## Holograms
+
+```java
+Hologram welcome = kiln.holograms().create(lobby, new Pos(0.5, 66, 0.5),
+        player -> kiln.messages().get(player, "welcome",
+                Placeholder.unparsed("coins", String.valueOf(coins.of(player).amount))));
+
+kiln.tasks().every(Duration.ofSeconds(5), welcome::refresh);
+```
+
+Every player gets their own copy of the text, which nobody else sees. That is how one hologram greets each
+player in their language and shows their own coins. `refresh` asks the text again and sends only what
+changed. Players entering the world see the hologram, players leaving it lose theirs, and `hide` and `show`
+handle single players in between. For text that is the same for everyone, pass a `Component` instead of a
+function.
+
+Holograms always face the player and are removed when the plugin is unloaded or swapped.
+
 ## A round on its own map
 
 Worlds live as folders in `worlds/`, saved in singleplayer or on any other server. `open` gives a fresh copy
@@ -278,7 +296,7 @@ which is the address players use to reach it.
 ## Swapping safely
 
 Kiln removes, on unload or swap: listeners from `kiln.events()`, commands from `kiln.commands()`, timers from
-`kiln.tasks()`, worlds from `kiln.worlds()`, network subscriptions, open menus, rounds and sidebars, and it saves player
+`kiln.tasks()`, worlds from `kiln.worlds()`, network subscriptions, open menus, rounds, sidebars and holograms, and it saves player
 data. What it cannot
 see is yours to stop in `disable()`: threads, executors, sockets, listeners on the global event handler.
 

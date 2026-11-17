@@ -8,6 +8,7 @@ import dev.vensin.kiln.api.Kiln;
 import dev.vensin.kiln.api.Menus;
 import dev.vensin.kiln.api.Rounds;
 import dev.vensin.kiln.api.Sidebars;
+import dev.vensin.kiln.api.Holograms;
 import dev.vensin.kiln.api.Messages;
 import dev.vensin.kiln.api.Network;
 import dev.vensin.kiln.api.PluginInfo;
@@ -68,6 +69,7 @@ final class PluginContext implements Kiln {
     private final PluginMenus menus;
     private final PluginRounds rounds;
     private final PluginSidebars sidebars;
+    private final PluginHolograms holograms;
 
     PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, PluginServices services) {
         this.info = info;
@@ -88,6 +90,7 @@ final class PluginContext implements Kiln {
         this.menus = new PluginMenus(events);
         this.rounds = new PluginRounds(info.name(), tasks, services.rounds());
         this.sidebars = new PluginSidebars(events);
+        this.holograms = new PluginHolograms(events);
         MinecraftServer.getGlobalEventHandler().addChild(node);
     }
 
@@ -148,11 +151,17 @@ final class PluginContext implements Kiln {
         return sidebars;
     }
 
+    @Override
+    public Holograms holograms() {
+        return holograms;
+    }
+
     /** Takes back everything the plugin registered through this context. */
     void close() {
         step("menus", menus::closeAll);
         step("rounds", rounds::closeAll);
         step("sidebars", sidebars::hideAll);
+        step("holograms", holograms::removeAll);
         step("timers", tasks::cancelAll);
         step("network subscriptions", network::close);
         step("worlds", worlds::closeAll);

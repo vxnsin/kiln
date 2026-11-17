@@ -34,9 +34,10 @@ memory.
   methods that cost the most time, and the plugins they belong to.
 - **Player data in one line.** A value per player, loaded while they connect, saved when they leave and every
   five minutes in between.
-- **Rounds, menus and sidebars built in.** `kiln.rounds()` waits for players, counts down, starts and ends a
-  round, `kiln.menus()` builds chest menus with buttons whose items cannot be taken out, and `kiln.sidebars()`
-  shows a scoreboard from a plain list of lines.
+- **Rounds, menus, sidebars and holograms built in.** `kiln.rounds()` waits for players, counts down, starts
+  and ends a round, `kiln.menus()` builds chest menus with buttons whose items cannot be taken out,
+  `kiln.sidebars()` shows a scoreboard from a plain list of lines, and `kiln.holograms()` puts floating text
+  into a world that each player reads in their own language or with their own numbers.
 - **Every player in their own language.** Put `lang/en.yml`, `lang/de.yml` and so on into a plugin and each
   player gets the file that matches their Minecraft language.
 
@@ -246,7 +247,7 @@ and German, is in
 [`example-plugin/`](example-plugin).
 
 Swapping works because Kiln knows what belongs to a plugin: listeners added with `kiln.events().on(...)`, commands
-passed to `kiln.commands(...)`, timers from `kiln.tasks()`, worlds from `kiln.worlds()`, open menus, rounds, sidebars and its player data.
+passed to `kiln.commands(...)`, timers from `kiln.tasks()`, worlds from `kiln.worlds()`, open menus, rounds, sidebars, holograms and its player data.
 Threads and executors a plugin starts itself are its
 own to stop in `disable()`.
 
@@ -281,6 +282,7 @@ What a plugin gets from Kiln:
 | `kiln.rounds().create(world)` | Waiting, countdown, start and end of a round, listed in `/stats` |
 | `kiln.menus().chest(rows, title)` | A chest menu with buttons, closed for everyone when the plugin goes |
 | `kiln.sidebars().show(player, title, lines)` | The scoreboard on the right, updated line by line, without score numbers |
+| `kiln.holograms().create(world, position, text)` | Floating text, sent to each player on their own, so everyone can read a different text |
 | `kiln.messages().send(player, key, ...)` | Texts from `lang/<language>.yml`, in the language of the player's client |
 | `kiln.config()`, `kiln.config(MyConfig.class)` | `plugins/<name>/config.yml` as a map or read into a class, copied from the jar on first start |
 | `kiln.dataFolder()` | `plugins/<name>/` for the plugin's own files |

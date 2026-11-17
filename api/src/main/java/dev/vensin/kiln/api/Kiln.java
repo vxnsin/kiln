@@ -47,6 +47,9 @@ public interface Kiln {
     /** A scoreboard per player on the right side of the screen, removed when the plugin is unloaded or swapped. */
     Sidebars sidebars();
 
+    /** Floating text in a world, removed when the plugin is unloaded or swapped. */
+    Holograms holograms();
+
     /** plugins/&lt;name&gt;/, created on first use. */
     Path dataFolder();
 
