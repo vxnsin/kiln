@@ -44,6 +44,9 @@ public interface Kiln {
     /** Rounds that wait for players, count down, run and end; shown in /stats so a matchmaker can see them. */
     Rounds rounds();
 
+    /** A scoreboard per player on the right side of the screen, removed when the plugin is unloaded or swapped. */
+    Sidebars sidebars();
+
     /** plugins/&lt;name&gt;/, created on first use. */
     Path dataFolder();
 

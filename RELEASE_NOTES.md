@@ -11,7 +11,8 @@ Java 25, and connect with Minecraft 26.2.
 - `/kiln performance`, the dashboard and `/metrics` show each plugin's time per tick
 - `/kiln profile` samples the server threads and names the busiest methods and plugins
 - Player data with autosave, key-value tables, config files read into classes, and translated texts
-- Rounds that wait for players, count down, start and end, and chest menus with buttons
+- Rounds that wait for players, count down, start and end, chest menus with buttons, and sidebars from a list
+  of lines
 
 ### While it runs
 

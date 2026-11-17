@@ -200,6 +200,23 @@ while it is open. Everyone who opens the same menu sees the same items, and chan
 so build one per player when the content is personal. Open menus are closed when the plugin is unloaded or
 swapped.
 
+## Sidebars
+
+```java
+kiln.tasks().every(Duration.ofSeconds(1), () -> {
+    for (Player player : round.players()) {
+        kiln.sidebars().show(player, Component.text("Arena", NamedTextColor.GOLD), List.of(
+                Component.text("Players: " + round.players().size()),
+                Component.empty(),
+                Component.text("Kills: " + kills.of(player).count)));
+    }
+});
+```
+
+A list of lines is all it takes: the first one sits on top, up to fifteen are shown, and the red numbers on the
+right are hidden. Calling `show` again sends only the lines that changed. `hide` takes it away, and every
+sidebar a plugin showed disappears when it is unloaded or swapped.
+
 ## A round on its own map
 
 Worlds live as folders in `worlds/`, saved in singleplayer or on any other server. `open` gives a fresh copy
@@ -261,7 +278,7 @@ which is the address players use to reach it.
 ## Swapping safely
 
 Kiln removes, on unload or swap: listeners from `kiln.events()`, commands from `kiln.commands()`, timers from
-`kiln.tasks()`, worlds from `kiln.worlds()`, network subscriptions, open menus and rounds, and it saves player
+`kiln.tasks()`, worlds from `kiln.worlds()`, network subscriptions, open menus, rounds and sidebars, and it saves player
 data. What it cannot
 see is yours to stop in `disable()`: threads, executors, sockets, listeners on the global event handler.
 
