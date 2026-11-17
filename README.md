@@ -191,7 +191,7 @@ In the folder of your server:
 java -jar kiln.jar new my-plugin
 ```
 
-That creates a ready Gradle project in `my-plugin/` that compiles against the server jar and, on every build,
+That creates a ready Gradle project in `my-plugin/` that takes the Kiln API from Maven and, on every build,
 drops itself into `plugins/`. Leave the server running, build, and the new code is live in about a second:
 
 ```bash
@@ -247,22 +247,42 @@ passed to `kiln.commands(...)`, timers from `kiln.tasks()`, worlds from `kiln.wo
 Threads and executors a plugin starts itself are its
 own to stop in `disable()`.
 
-Install the API into your local Maven repository:
+For a project of your own, the API comes from Kiln's Maven repository. No account or token is needed.
 
-```bash
-./gradlew :api:publishToMavenLocal
-```
+Gradle:
 
 ```kotlin
 repositories {
-    mavenLocal()
     mavenCentral()
+    maven("https://vxnsin.github.io/kiln/maven")
 }
 
 dependencies {
     compileOnly("dev.vensin.kiln:kiln-api:0.1.0")
 }
 ```
+
+Maven:
+
+```xml
+<repositories>
+    <repository>
+        <id>kiln</id>
+        <url>https://vxnsin.github.io/kiln/maven</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>dev.vensin.kiln</groupId>
+        <artifactId>kiln-api</artifactId>
+        <version>0.1.0</version>
+        <scope>provided</scope>
+    </dependency>
+</dependencies>
+```
+
+Minestom and Adventure come along with it, and the server provides all of them at runtime.
 
 What a plugin gets from Kiln:
 

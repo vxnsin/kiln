@@ -29,6 +29,19 @@ jobs:
           cp "$(ls api/build/libs/kiln-api-*.jar | grep -v sources)" kiln-api.jar
           gh release create "$GITHUB_REF_NAME" kiln.jar kiln-api.jar \
             --title "Kiln ${GITHUB_REF_NAME#v}" --notes-file RELEASE_NOTES.md
+      - name: Add the API to the Maven repository on GitHub Pages
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          git fetch --depth 1 origin gh-pages
+          git worktree add pages FETCH_HEAD
+          ./gradlew :api:publishApiPublicationToPagesRepository -Pversion="$version" -PpagesRepo="$PWD/pages/maven"
+          cd pages
+          sed -i "s/kiln-api:[0-9][0-9.]*/kiln-api:$version/" index.html
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish kiln-api $version"
+          git push origin HEAD:gh-pages
       - name: Push the container image
         run: |
           image="ghcr.io/${GITHUB_REPOSITORY,,}"

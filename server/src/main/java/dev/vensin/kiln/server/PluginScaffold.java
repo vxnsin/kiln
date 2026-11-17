@@ -57,6 +57,17 @@ final class PluginScaffold {
         }
     }
 
+    /** The API version to compile against: the one of this server, so the plugin uses nothing it lacks. */
+    private static String kilnVersion() throws IOException {
+        java.util.Properties build = new java.util.Properties();
+        try (var in = PluginScaffold.class.getClassLoader().getResourceAsStream("version.properties")) {
+            if (in != null) {
+                build.load(in);
+            }
+        }
+        return build.getProperty("version", "0.1.0");
+    }
+
     /** Relative when both sit on the same drive, absolute otherwise; Windows cannot relate C: to D:. */
     private static String pathFrom(Path project, Path target) {
         try {
@@ -69,12 +80,11 @@ final class PluginScaffold {
         String className = className(name);
         String packageName = name.replace("-", "");
         Path server = Path.of("").toAbsolutePath();
-        Path jar = Path.of(PluginScaffold.class.getProtectionDomain().getCodeSource().getLocation().toURI());
         Map<String, String> values = Map.of(
                 "{{name}}", name,
                 "{{class}}", className,
                 "{{package}}", packageName,
-                "{{kilnJar}}", pathFrom(project, jar),
+                "{{kilnVersion}}", kilnVersion(),
                 "{{plugins}}", pathFrom(project, server.resolve("plugins")));
 
         Path sources = project.resolve("src/main/java").resolve(packageName);

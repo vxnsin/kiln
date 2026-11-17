@@ -12,8 +12,8 @@ In the folder of your server:
 java -jar kiln.jar new my-plugin
 ```
 
-You get a Gradle project that compiles against the server jar and copies itself into `plugins/` on every
-build. With the server running, `./gradlew build` swaps the plugin within about a second.
+You get a Gradle project that takes the Kiln API in the version of your server from
+`https://vxnsin.github.io/kiln/maven` and copies itself into `plugins/` on every build. With the server running, `./gradlew build` swaps the plugin within about a second.
 
 ## kiln-plugin.yml
 

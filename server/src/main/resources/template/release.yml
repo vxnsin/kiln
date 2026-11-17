@@ -19,8 +19,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-      - name: Fetch the Kiln server jar to compile against
-        run: curl -fsSL -o "{{kilnJar}}" https://github.com/vxnsin/kiln/releases/latest/download/kiln.jar
       - name: Build
         run: chmod +x gradlew && ./gradlew build
       - name: Publish the release
