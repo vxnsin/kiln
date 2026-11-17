@@ -233,7 +233,8 @@ changed. Players entering the world see the hologram, players leaving it lose th
 handle single players in between. For text that is the same for everyone, pass a `Component` instead of a
 function.
 
-Holograms always face the player and are removed when the plugin is unloaded or swapped.
+Holograms are packets only: the server keeps no entity for them and ticks nothing, so a lobby full of them costs
+next to nothing. They always face the player and are removed when the plugin is unloaded or swapped.
 
 ## A round on its own map
 

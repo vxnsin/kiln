@@ -282,7 +282,7 @@ What a plugin gets from Kiln:
 | `kiln.rounds().create(world)` | Waiting, countdown, start and end of a round, listed in `/stats` |
 | `kiln.menus().chest(rows, title)` | A chest menu with buttons, closed for everyone when the plugin goes |
 | `kiln.sidebars().show(player, title, lines)` | The scoreboard on the right, updated line by line, without score numbers |
-| `kiln.holograms().create(world, position, text)` | Floating text, sent to each player on their own, so everyone can read a different text |
+| `kiln.holograms().create(world, position, text)` | Floating text as packets only, sent to each player on their own, so everyone can read a different text |
 | `kiln.messages().send(player, key, ...)` | Texts from `lang/<language>.yml`, in the language of the player's client |
 | `kiln.config()`, `kiln.config(MyConfig.class)` | `plugins/<name>/config.yml` as a map or read into a class, copied from the jar on first start |
 | `kiln.dataFolder()` | `plugins/<name>/` for the plugin's own files |

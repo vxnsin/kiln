@@ -73,8 +73,14 @@ class RoundsAndMenusTest {
         var hologram = holograms.create(world, new net.minestom.server.coordinate.Pos(0, 64, 0), Component.text("Hi"));
         hologram.text(player -> Component.text("Hi " + player.getUsername()));
         hologram.teleport(new net.minestom.server.coordinate.Pos(1, 65, 1));
+        assertTrue(world.getEntities().isEmpty(), "holograms are packets, not entities on the server");
         holograms.removeAll();
-        assertTrue(world.getEntities().isEmpty());
+    }
+
+    @Test
+    void hologramUpdatesSendOnlyTheText() {
+        assertEquals(4, PluginHolograms.metadata(Component.text("Hi"), true).size());
+        assertEquals(1, PluginHolograms.metadata(Component.text("Hi"), false).size());
     }
 
     @Test
