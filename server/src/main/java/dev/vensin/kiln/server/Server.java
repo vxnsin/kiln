@@ -23,6 +23,7 @@ import dev.vensin.kiln.server.plugin.PluginManager;
 import dev.vensin.kiln.server.plugin.PluginServices;
 import dev.vensin.kiln.server.plugin.PluginWatcher;
 import dev.vensin.kiln.server.round.EmptyShutdown;
+import dev.vensin.kiln.server.round.RoundBoard;
 import dev.vensin.kiln.server.round.WebEndpoint;
 import dev.vensin.kiln.server.store.FileDriver;
 import dev.vensin.kiln.server.store.MongoDriver;
@@ -154,9 +155,10 @@ final class Server {
         Bans mutes = new Bans(storage.forPlugin("kiln").table("mutes", Bans.Ban.class));
         ChatStyle chatStyle = new ChatStyle(ChatStyle.from(settings), permissions, mutes);
         chatStyle.register(events);
+        RoundBoard rounds = new RoundBoard();
         if (settings.webPort() > 0) {
             new WebEndpoint(ready::get, new WebEndpoint.Identity(settings.name(), settings.serverId(), version,
-                    settings.maxPlayers()), performance).start(settings.webPort());
+                    settings.maxPlayers()), performance, rounds).start(settings.webPort());
         }
         server.start(settings.host(), settings.port());
         engine.ok((proxied ? "behind Velocity" : settings.onlineMode() ? "online mode"
@@ -212,7 +214,7 @@ final class Server {
         PlayerDataManager playerData = new PlayerDataManager();
         playerData.register(events);
         PluginServices services = new PluginServices(operators, permissions, playerData, worlds, settings.language(),
-                storage, network);
+                storage, network, rounds);
         PluginManager plugins = new PluginManager(Path.of("plugins"), services);
         performance.plugins(services.timings(), () -> plugins.loaded().stream().map(loaded -> loaded.info().name()).toList());
         plugins.loadNew();
@@ -229,6 +231,9 @@ final class Server {
             chatStyle.update(ChatStyle.from(fresh));
             live.set(fresh);
         });
+        if (settings.stopAfterRound() > 0) {
+            rounds.whenEnded(round -> kiln.stopAfter(settings.stopAfterRound(), ServerTexts.line("round-over")));
+        }
         if (!settings.dailyRestart().isBlank()) {
             kiln.dailyStop(settings.dailyRestart());
         }

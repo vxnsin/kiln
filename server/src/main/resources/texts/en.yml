@@ -9,3 +9,7 @@ ban-until: "It ends on <date>."
 kicked: ["You were kicked", "You can join again."]
 stopping: ["The server is shutting down", "It will be back shortly."]
 world-closed: ["The world you were in was closed", "Join again to get back in."]
+round-waiting: "<gray>Waiting for players</gray> <dark_gray>·</dark_gray> <white><count>/<needed></white>"
+round-starting: "<gray>Starting in</gray> <white><bold><seconds></bold></white>"
+round-go: "<green><bold>Go!</bold></green>"
+round-over: "round over"

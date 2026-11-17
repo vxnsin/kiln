@@ -104,5 +104,9 @@ web-port: 0
 # Shut down this many seconds after the last player left, for servers that live for one round. 0 keeps it running.
 stop-when-empty: 0
 
+# Stop this many seconds after a plugin's round ended, with a countdown everyone can see, for servers that live
+# for one round. 0 keeps it running.
+stop-after-round: 0
+
 # Every option above can also come from an environment variable: KILN_ plus the name in capitals with
 # underscores, for example KILN_PORT=25566 or KILN_COLORS_FROM=#ff0000. The variable wins over this file.

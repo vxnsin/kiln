@@ -1,6 +1,7 @@
 package dev.vensin.kiln.server.round;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -26,12 +27,15 @@ public final class WebEndpoint {
     private final BooleanSupplier ready;
     private final Identity identity;
     private final Performance performance;
+    private final RoundBoard rounds;
     private final byte[] dashboard;
 
-    public WebEndpoint(BooleanSupplier ready, Identity identity, Performance performance) throws IOException {
+    public WebEndpoint(BooleanSupplier ready, Identity identity, Performance performance, RoundBoard rounds)
+            throws IOException {
         this.ready = ready;
         this.identity = identity;
         this.performance = performance;
+        this.rounds = rounds;
         try (InputStream in = WebEndpoint.class.getClassLoader().getResourceAsStream("web/dashboard.html")) {
             this.dashboard = in.readAllBytes();
         }
@@ -73,6 +77,16 @@ public final class WebEndpoint {
         body.addProperty("version", identity.version());
         body.addProperty("maxPlayers", identity.maxPlayers());
         body.addProperty("ready", ready.getAsBoolean());
+        JsonArray list = new JsonArray();
+        for (RoundBoard.Live round : rounds.list()) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("plugin", round.plugin());
+            entry.addProperty("state", round.stateName());
+            entry.addProperty("players", round.playerCount());
+            entry.addProperty("minPlayers", round.minPlayers());
+            list.add(entry);
+        }
+        body.add("rounds", list);
         return body.toString();
     }
 

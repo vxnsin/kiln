@@ -38,6 +38,12 @@ public interface Kiln {
     /** Messages to the same plugin on other servers, and who is online where. */
     Network network();
 
+    /** Chest menus with buttons, closed for everyone when the plugin is unloaded or swapped. */
+    Menus menus();
+
+    /** Rounds that wait for players, count down, run and end; shown in /stats so a matchmaker can see them. */
+    Rounds rounds();
+
     /** plugins/&lt;name&gt;/, created on first use. */
     Path dataFolder();
 

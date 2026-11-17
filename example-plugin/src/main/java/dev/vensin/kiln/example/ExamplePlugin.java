@@ -7,11 +7,14 @@ import dev.vensin.kiln.api.store.Table;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.Optional;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.builder.Command;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.player.PlayerSpawnEvent;
+import net.minestom.server.item.ItemStack;
+import net.minestom.server.item.Material;
 
 public final class ExamplePlugin implements Plugin {
 
@@ -66,6 +69,20 @@ public final class ExamplePlugin implements Plugin {
                             Placeholder.unparsed("visits", String.valueOf(score.visits()))));
         });
         command.addSubcommand(top);
+        Command card = new Command("card");
+        card.setDefaultExecutor((sender, context) -> {
+            if (sender instanceof Player player) {
+                String count = String.valueOf(visits.of(player).count);
+                kiln.menus().chest(3, kiln.messages().get(player, "card-title"))
+                        .item(13, ItemStack.of(Material.PAPER).withCustomName(
+                                kiln.messages().get(player, "card-visits", Placeholder.unparsed("visits", count))))
+                        .button(22, ItemStack.of(Material.BARRIER).withCustomName(kiln.messages().get(player, "card-close")),
+                                Player::closeInventory)
+                        .fill(ItemStack.of(Material.GRAY_STAINED_GLASS_PANE).withCustomName(Component.empty()))
+                        .open(player);
+            }
+        });
+        command.addSubcommand(card);
         kiln.commands(command);
     }
 }

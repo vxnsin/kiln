@@ -5,6 +5,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dev.vensin.kiln.api.Events;
 import dev.vensin.kiln.api.Kiln;
+import dev.vensin.kiln.api.Menus;
+import dev.vensin.kiln.api.Rounds;
 import dev.vensin.kiln.api.Messages;
 import dev.vensin.kiln.api.Network;
 import dev.vensin.kiln.api.PluginInfo;
@@ -62,6 +64,8 @@ final class PluginContext implements Kiln {
     private final PluginTasks tasks;
     private final PluginMessages messages;
     private final PluginNetwork network;
+    private final PluginMenus menus;
+    private final PluginRounds rounds;
 
     PluginContext(PluginInfo info, PluginClassLoader loader, Path folder, PluginServices services) {
         this.info = info;
@@ -79,6 +83,8 @@ final class PluginContext implements Kiln {
         this.events = new PluginEvents(node, timing);
         this.messages = new PluginMessages(loader, folder, services.language(), logger);
         this.network = new PluginNetwork(services.network(), info.name(), timing);
+        this.menus = new PluginMenus(events);
+        this.rounds = new PluginRounds(info.name(), tasks, services.rounds());
         MinecraftServer.getGlobalEventHandler().addChild(node);
     }
 
@@ -124,8 +130,20 @@ final class PluginContext implements Kiln {
         return network;
     }
 
+    @Override
+    public Menus menus() {
+        return menus;
+    }
+
+    @Override
+    public Rounds rounds() {
+        return rounds;
+    }
+
     /** Takes back everything the plugin registered through this context. */
     void close() {
+        step("menus", menus::closeAll);
+        step("rounds", rounds::closeAll);
         step("timers", tasks::cancelAll);
         step("network subscriptions", network::close);
         step("worlds", worlds::closeAll);

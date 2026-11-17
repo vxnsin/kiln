@@ -3,3 +3,6 @@ first-visit: "<gold><name></gold> <gray>is here for the first time. Say hello!</
 visits: "<gray>You have been here</gray> <white><visits></white> <gray>times.</gray>"
 top: "<gold>Most visits</gold>"
 top-line: "<white><name></white> <gray><visits></gray>"
+card-title: "Your visits"
+card-visits: "<!italic><gold><visits> visits</gold>"
+card-close: "<!italic><red>Close</red>"

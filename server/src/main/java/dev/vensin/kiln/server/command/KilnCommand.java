@@ -620,6 +620,16 @@ public final class KilnCommand {
     }
 
 
+    /** Stops after the visible countdown unless one is already running, for stop-after-round. */
+    public void stopAfter(int seconds, String reason) {
+        var console = MinecraftServer.getCommandManager().getConsoleSender();
+        MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+            if (!countdown.running()) {
+                countdown.start(seconds, reason, done -> stop(console, done));
+            }
+        });
+    }
+
     /** Runs the stop countdown once a day at the given local time, for example "04:00". */
     public void dailyStop(String time) {
         LocalTime at;

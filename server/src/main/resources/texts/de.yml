@@ -9,3 +9,7 @@ ban-until: "Er endet am <date>."
 kicked: ["Du wurdest vom Server geworfen", "Du kannst wieder beitreten."]
 stopping: ["Der Server fährt herunter", "Er ist gleich wieder da."]
 world-closed: ["Die Welt, in der du warst, wurde geschlossen", "Tritt erneut bei, um zurückzukommen."]
+round-waiting: "<gray>Warte auf Spieler</gray> <dark_gray>·</dark_gray> <white><count>/<needed></white>"
+round-starting: "<gray>Start in</gray> <white><bold><seconds></bold></white>"
+round-go: "<green><bold>Los!</bold></green>"
+round-over: "Runde vorbei"
